@@ -19,9 +19,15 @@ const state = {
   filteredScenes: [],
 
   editingSceneId: null,
-  actionsSceneId: null,
+actionsSceneId: null,
 
-  isSaving: false
+blocksSceneId: null,
+blocks: [],
+
+editingBlockId: null,
+
+isSaving: false,
+isSavingBlock: false
 };
 
 const elements = {};
@@ -274,6 +280,146 @@ function cacheElements() {
       "toggle-scene-button"
     );
 
+     elements.blocksModal =
+    document.getElementById(
+      "blocks-modal"
+    );
+
+  elements.blocksModalTitle =
+    document.getElementById(
+      "blocks-modal-title"
+    );
+
+  elements.blocksSceneIdentifier =
+    document.getElementById(
+      "blocks-scene-identifier"
+    );
+
+  elements.blocksTotal =
+    document.getElementById(
+      "blocks-total"
+    );
+
+  elements.blocksMessage =
+    document.getElementById(
+      "blocks-message"
+    );
+
+  elements.blocksList =
+    document.getElementById(
+      "blocks-list"
+    );
+
+  elements.newBlockButton =
+    document.getElementById(
+      "new-block-button"
+    );
+
+  elements.blockCardTemplate =
+    document.getElementById(
+      "block-card-template"
+    );
+
+  elements.blockFormModal =
+    document.getElementById(
+      "block-form-modal"
+    );
+
+  elements.blockFormTitle =
+    document.getElementById(
+      "block-form-title"
+    );
+
+  elements.blockForm =
+    document.getElementById(
+      "block-form"
+    );
+
+  elements.blockId =
+    document.getElementById(
+      "block-id"
+    );
+
+  elements.blockType =
+    document.getElementById(
+      "block-type"
+    );
+
+  elements.blockAnimation =
+    document.getElementById(
+      "block-animation"
+    );
+
+  elements.blockTextField =
+    document.getElementById(
+      "block-text-field"
+    );
+
+  elements.blockContent =
+    document.getElementById(
+      "block-content"
+    );
+
+  elements.blockContentHelp =
+    document.getElementById(
+      "block-content-help"
+    );
+
+  elements.blockMediaField =
+    document.getElementById(
+      "block-media-field"
+    );
+
+  elements.blockMediaUrl =
+    document.getElementById(
+      "block-media-url"
+    );
+
+  elements.blockAltField =
+    document.getElementById(
+      "block-alt-field"
+    );
+
+  elements.blockAltText =
+    document.getElementById(
+      "block-alt-text"
+    );
+
+  elements.blockAppearanceGroup =
+    document.getElementById(
+      "block-appearance-group"
+    );
+
+  elements.blockColorPicker =
+    document.getElementById(
+      "block-color-picker"
+    );
+
+  elements.blockTextColor =
+    document.getElementById(
+      "block-text-color"
+    );
+
+  elements.blockEnabled =
+    document.getElementById(
+      "block-enabled"
+    );
+
+  elements.blockPreview =
+    document.getElementById(
+      "block-preview"
+    );
+
+  elements.blockFormMessage =
+    document.getElementById(
+      "block-form-message"
+    );
+
+  elements.saveBlockButton =
+    document.getElementById(
+      "save-block-button"
+    );
+   
   const missing = Object.entries(elements)
     .filter(([, element]) => !element)
     .map(([name]) => name);
@@ -366,8 +512,71 @@ function configureEvents() {
       return;
     }
 
-    closeSceneModal();
-    closeActionsModal();
+    closeBlockFormModal();
+closeBlocksModal();
+closeSceneModal();
+closeActionsModal();
+
+       elements.newBlockButton.addEventListener(
+    "click",
+    openNewBlockModal
+  );
+
+  elements.blocksList.addEventListener(
+    "click",
+    handleBlocksListClick
+  );
+
+  elements.blocksModal.addEventListener(
+    "click",
+    handleBlocksModalClick
+  );
+
+  elements.blockFormModal.addEventListener(
+    "click",
+    handleBlockFormModalClick
+  );
+
+  elements.blockForm.addEventListener(
+    "submit",
+    handleBlockFormSubmit
+  );
+
+  elements.blockType.addEventListener(
+    "change",
+    updateBlockFormInterface
+  );
+
+  elements.blockAnimation.addEventListener(
+    "change",
+    renderBlockFormPreview
+  );
+
+  elements.blockContent.addEventListener(
+    "input",
+    renderBlockFormPreview
+  );
+
+  elements.blockMediaUrl.addEventListener(
+    "input",
+    renderBlockFormPreview
+  );
+
+  elements.blockAltText.addEventListener(
+    "input",
+    renderBlockFormPreview
+  );
+
+  elements.blockTextColor.addEventListener(
+    "input",
+    handleBlockTextColorInput
+  );
+
+  elements.blockColorPicker.addEventListener(
+    "input",
+    handleBlockColorPickerInput
+  );
+     
   });
 }
 
@@ -863,6 +1072,11 @@ function createSceneCard(scene) {
       '[data-scene-meta="ending"]'
     );
 
+     const contentButton =
+    fragment.querySelector(
+      '[data-action="content"]'
+    );
+   
   const editButton =
     fragment.querySelector(
       '[data-action="edit"]'
@@ -923,6 +1137,7 @@ function createSceneCard(scene) {
         )}`
       : "";
 
+  contentButton.dataset.sceneId = scene.id;
   editButton.dataset.sceneId = scene.id;
   moreButton.dataset.sceneId = scene.id;
 
@@ -1012,7 +1227,11 @@ function handleSceneListClick(event) {
     return;
   }
 
-  switch (button.dataset.action) {
+   switch (button.dataset.action) {
+    case "content":
+      openBlocksModal(sceneId);
+      break;
+
     case "edit":
       openEditSceneModal(sceneId);
       break;
@@ -1836,4 +2055,1282 @@ function formatDatabaseError(error) {
   }
 
   return message;
+}
+
+/* ==========================================================
+   EDITOR DE BLOCOS
+   ========================================================== */
+
+async function openBlocksModal(sceneId) {
+  const scene = state.scenes.find(
+    item => item.id === sceneId
+  );
+
+  if (!scene) {
+    showSceneListMessage(
+      "A cena selecionada não foi encontrada.",
+      "error"
+    );
+
+    return;
+  }
+
+  state.blocksSceneId = scene.id;
+  state.blocks = [];
+
+  elements.blocksModalTitle.textContent =
+    scene.title || "Cena sem título";
+
+  elements.blocksSceneIdentifier.textContent =
+    scene.scene_key;
+
+  elements.blocksModal.classList.remove(
+    "is-hidden"
+  );
+
+  document.body.style.overflow = "hidden";
+
+  await loadSceneBlocks();
+}
+
+function closeBlocksModal() {
+  if (state.isSavingBlock) {
+    return;
+  }
+
+  elements.blocksModal.classList.add(
+    "is-hidden"
+  );
+
+  document.body.style.overflow = "";
+
+  state.blocksSceneId = null;
+  state.blocks = [];
+}
+
+function handleBlocksModalClick(event) {
+  if (
+    event.target.closest(
+      "[data-close-blocks-modal]"
+    )
+  ) {
+    closeBlocksModal();
+  }
+}
+
+async function loadSceneBlocks() {
+  if (!state.blocksSceneId) {
+    return;
+  }
+
+  showBlocksMessage(
+    "CARREGANDO CONTEÚDO..."
+  );
+
+  const {
+    data,
+    error
+  } = await state.client
+    .from("scene_blocks")
+    .select(`
+      id,
+      scene_id,
+      block_type,
+      content,
+      media_url,
+      alt_text,
+      text_color,
+      animation_type,
+      display_order,
+      is_enabled,
+      created_at,
+      updated_at
+    `)
+    .eq("scene_id", state.blocksSceneId)
+    .order("display_order", {
+      ascending: true
+    })
+    .order("created_at", {
+      ascending: true
+    });
+
+  if (error) {
+    showBlocksMessage(
+      formatDatabaseError(error),
+      "error"
+    );
+
+    return;
+  }
+
+  state.blocks = data || [];
+
+  renderBlocksList();
+}
+
+function renderBlocksList() {
+  elements.blocksList.replaceChildren();
+
+  const total = state.blocks.length;
+
+  elements.blocksTotal.textContent =
+    total === 1
+      ? "1 bloco"
+      : `${total} blocos`;
+
+  if (total === 0) {
+    const empty =
+      document.createElement("div");
+
+    empty.className =
+      "blocks-list__empty";
+
+    empty.textContent =
+      "Esta cena ainda não possui conteúdo. " +
+      "Clique em + NOVO BLOCO para começar.";
+
+    elements.blocksList.appendChild(empty);
+
+    showBlocksMessage(
+      "NENHUM BLOCO CADASTRADO."
+    );
+
+    return;
+  }
+
+  const fragment =
+    document.createDocumentFragment();
+
+  state.blocks.forEach((block, index) => {
+    fragment.appendChild(
+      createBlockCard(block, index)
+    );
+  });
+
+  elements.blocksList.appendChild(fragment);
+
+  showBlocksMessage(
+    "CONTEÚDO CARREGADO."
+  );
+}
+
+function createBlockCard(block, index) {
+  const fragment =
+    elements.blockCardTemplate.content
+      .cloneNode(true);
+
+  const card =
+    fragment.querySelector(
+      ".block-card"
+    );
+
+  const position =
+    fragment.querySelector(
+      ".block-card__position"
+    );
+
+  const type =
+    fragment.querySelector(
+      ".block-card__type"
+    );
+
+  const animation =
+    fragment.querySelector(
+      ".block-card__animation"
+    );
+
+  const status =
+    fragment.querySelector(
+      ".block-card__state"
+    );
+
+  const preview =
+    fragment.querySelector(
+      ".block-card__preview"
+    );
+
+  const buttons =
+    fragment.querySelectorAll(
+      "[data-block-action]"
+    );
+
+  card.dataset.blockId = block.id;
+
+  card.classList.toggle(
+    "is-inactive",
+    !block.is_enabled
+  );
+
+  position.textContent =
+    String(index + 1).padStart(2, "0");
+
+  type.textContent =
+    formatBlockType(block.block_type);
+
+  animation.textContent =
+    formatBlockAnimation(
+      block.animation_type
+    );
+
+  status.textContent =
+    block.is_enabled
+      ? "ATIVO"
+      : "DESATIVADO";
+
+  buttons.forEach(button => {
+    button.dataset.blockId = block.id;
+
+    if (
+      button.dataset.blockAction === "up"
+    ) {
+      button.disabled = index === 0;
+    }
+
+    if (
+      button.dataset.blockAction === "down"
+    ) {
+      button.disabled =
+        index === state.blocks.length - 1;
+    }
+  });
+
+  renderBlockCardPreview(
+    preview,
+    block
+  );
+
+  return fragment;
+}
+
+function formatBlockType(blockType) {
+  const names = {
+    title: "TÍTULO",
+    text: "TEXTO",
+    system_message: "MENSAGEM DO SISTEMA",
+    image: "IMAGEM",
+    pixel_art: "PIXEL ART",
+    ascii: "ASCII",
+    divider: "DIVISOR",
+    audio: "ÁUDIO"
+  };
+
+  return names[blockType] || blockType;
+}
+
+function formatBlockAnimation(animation) {
+  const names = {
+    none: "SEM ANIMAÇÃO",
+    fade: "APARECER",
+    typing: "DIGITAÇÃO",
+    glitch: "GLITCH",
+    blink: "PISCAR",
+    line_reveal: "REVELAR LINHAS"
+  };
+
+  return names[animation] || animation;
+}
+
+function renderBlockCardPreview(
+  container,
+  block
+) {
+  container.replaceChildren();
+
+  switch (block.block_type) {
+    case "title":
+    case "text":
+    case "system_message": {
+      const paragraph =
+        document.createElement("p");
+
+      paragraph.textContent =
+        block.content ||
+        "Bloco sem conteúdo.";
+
+      if (block.text_color) {
+        paragraph.style.color =
+          block.text_color;
+      }
+
+      container.appendChild(paragraph);
+      break;
+    }
+
+    case "ascii": {
+      const ascii =
+        document.createElement("pre");
+
+      ascii.textContent =
+        block.content ||
+        "Arte ASCII vazia.";
+
+      if (block.text_color) {
+        ascii.style.color =
+          block.text_color;
+      }
+
+      container.appendChild(ascii);
+      break;
+    }
+
+    case "image":
+    case "pixel_art": {
+      if (!block.media_url) {
+        container.textContent =
+          "Nenhum endereço de imagem cadastrado.";
+
+        break;
+      }
+
+      const image =
+        document.createElement("img");
+
+      image.src = block.media_url;
+      image.alt = block.alt_text || "";
+
+      if (block.block_type === "pixel_art") {
+        image.style.imageRendering =
+          "pixelated";
+      }
+
+      container.appendChild(image);
+      break;
+    }
+
+    case "audio": {
+      if (!block.media_url) {
+        container.textContent =
+          "Nenhum áudio cadastrado.";
+
+        break;
+      }
+
+      const audio =
+        document.createElement("audio");
+
+      audio.controls = true;
+      audio.src = block.media_url;
+
+      container.appendChild(audio);
+      break;
+    }
+
+    case "divider": {
+      const divider =
+        document.createElement("div");
+
+      divider.className =
+        "block-card__divider-preview";
+
+      container.appendChild(divider);
+      break;
+    }
+
+    default:
+      container.textContent =
+        "Tipo de bloco desconhecido.";
+  }
+}
+
+function showBlocksMessage(
+  message,
+  type = ""
+) {
+  elements.blocksMessage.className =
+    "scene-list-message";
+
+  if (type) {
+    elements.blocksMessage.classList.add(
+      `is-${type}`
+    );
+  }
+
+  elements.blocksMessage.textContent =
+    message || "";
+}
+
+
+/* ==========================================================
+   CLIQUES NOS BLOCOS
+   ========================================================== */
+
+async function handleBlocksListClick(event) {
+  const button = event.target.closest(
+    "[data-block-action]"
+  );
+
+  if (!button) {
+    return;
+  }
+
+  const blockId =
+    button.dataset.blockId;
+
+  if (!blockId) {
+    return;
+  }
+
+  switch (button.dataset.blockAction) {
+    case "up":
+      await moveBlock(blockId, "up");
+      break;
+
+    case "down":
+      await moveBlock(blockId, "down");
+      break;
+
+    case "edit":
+      openEditBlockModal(blockId);
+      break;
+
+    case "duplicate":
+      await duplicateBlock(blockId);
+      break;
+
+    case "toggle":
+      await toggleBlock(blockId);
+      break;
+
+    case "delete":
+      await deleteBlock(blockId);
+      break;
+  }
+}
+
+
+/* ==========================================================
+   FORMULÁRIO DO BLOCO
+   ========================================================== */
+
+function openNewBlockModal() {
+  if (!state.blocksSceneId) {
+    return;
+  }
+
+  state.editingBlockId = null;
+
+  resetBlockForm();
+
+  elements.blockFormTitle.textContent =
+    "Novo bloco";
+
+  elements.blockFormModal.classList.remove(
+    "is-hidden"
+  );
+
+  renderBlockFormPreview();
+}
+
+function openEditBlockModal(blockId) {
+  const block = state.blocks.find(
+    item => item.id === blockId
+  );
+
+  if (!block) {
+    return;
+  }
+
+  state.editingBlockId = block.id;
+
+  fillBlockForm(block);
+
+  elements.blockFormTitle.textContent =
+    `Editar ${formatBlockType(
+      block.block_type
+    ).toLocaleLowerCase("pt-BR")}`;
+
+  elements.blockFormModal.classList.remove(
+    "is-hidden"
+  );
+
+  renderBlockFormPreview();
+}
+
+function closeBlockFormModal() {
+  if (state.isSavingBlock) {
+    return;
+  }
+
+  elements.blockFormModal.classList.add(
+    "is-hidden"
+  );
+
+  state.editingBlockId = null;
+}
+
+function handleBlockFormModalClick(event) {
+  if (
+    event.target.closest(
+      "[data-close-block-form]"
+    )
+  ) {
+    closeBlockFormModal();
+  }
+}
+
+function resetBlockForm() {
+  elements.blockForm.reset();
+
+  elements.blockId.value = "";
+  elements.blockType.value = "text";
+  elements.blockAnimation.value = "none";
+
+  elements.blockContent.value = "";
+  elements.blockMediaUrl.value = "";
+  elements.blockAltText.value = "";
+
+  elements.blockTextColor.value = "";
+  elements.blockColorPicker.value =
+    "#e8e8e8";
+
+  elements.blockEnabled.checked = true;
+
+  updateBlockFormInterface();
+  clearBlockFormMessage();
+}
+
+function fillBlockForm(block) {
+  elements.blockId.value =
+    block.id;
+
+  elements.blockType.value =
+    block.block_type;
+
+  elements.blockAnimation.value =
+    block.animation_type || "none";
+
+  elements.blockContent.value =
+    block.content || "";
+
+  elements.blockMediaUrl.value =
+    block.media_url || "";
+
+  elements.blockAltText.value =
+    block.alt_text || "";
+
+  elements.blockTextColor.value =
+    block.text_color || "";
+
+  elements.blockColorPicker.value =
+    isValidHexColor(block.text_color)
+      ? block.text_color
+      : "#e8e8e8";
+
+  elements.blockEnabled.checked =
+    block.is_enabled === true;
+
+  updateBlockFormInterface();
+  clearBlockFormMessage();
+}
+
+function updateBlockFormInterface() {
+  const blockType =
+    elements.blockType.value;
+
+  const usesText = [
+    "title",
+    "text",
+    "system_message",
+    "ascii"
+  ].includes(blockType);
+
+  const usesMedia = [
+    "image",
+    "pixel_art",
+    "audio"
+  ].includes(blockType);
+
+  const usesAlt = [
+    "image",
+    "pixel_art"
+  ].includes(blockType);
+
+  const usesColor = [
+    "title",
+    "text",
+    "system_message",
+    "ascii"
+  ].includes(blockType);
+
+  elements.blockTextField.classList.toggle(
+    "is-hidden",
+    !usesText
+  );
+
+  elements.blockMediaField.classList.toggle(
+    "is-hidden",
+    !usesMedia
+  );
+
+  elements.blockAltField.classList.toggle(
+    "is-hidden",
+    !usesAlt
+  );
+
+  elements.blockAppearanceGroup.classList.toggle(
+    "is-hidden",
+    !usesColor && blockType === "divider"
+  );
+
+  if (blockType === "ascii") {
+    elements.blockContentHelp.textContent =
+      "Espaços e quebras de linha serão preservados.";
+  } else if (blockType === "system_message") {
+    elements.blockContentHelp.textContent =
+      "Será exibido como uma mensagem técnica do terminal.";
+  } else if (blockType === "title") {
+    elements.blockContentHelp.textContent =
+      "Será exibido como um título dentro da cena.";
+  } else {
+    elements.blockContentHelp.textContent =
+      "O texto será mostrado exatamente como foi escrito.";
+  }
+
+  renderBlockFormPreview();
+}
+
+function handleBlockTextColorInput() {
+  const color =
+    elements.blockTextColor.value.trim();
+
+  if (isValidHexColor(color)) {
+    elements.blockColorPicker.value =
+      color;
+  }
+
+  renderBlockFormPreview();
+}
+
+function handleBlockColorPickerInput() {
+  elements.blockTextColor.value =
+    elements.blockColorPicker.value;
+
+  renderBlockFormPreview();
+}
+
+function isValidHexColor(value) {
+  return /^#[0-9a-f]{6}$/i.test(
+    String(value || "")
+  );
+}
+
+
+/* ==========================================================
+   PRÉ-VISUALIZAÇÃO DO FORMULÁRIO
+   ========================================================== */
+
+function renderBlockFormPreview() {
+  elements.blockPreview.replaceChildren();
+
+  const blockType =
+    elements.blockType.value;
+
+  const content =
+    elements.blockContent.value;
+
+  const mediaUrl =
+    elements.blockMediaUrl.value.trim();
+
+  const altText =
+    elements.blockAltText.value.trim();
+
+  const textColor =
+    elements.blockTextColor.value.trim();
+
+  let preview = null;
+
+  switch (blockType) {
+    case "title":
+      preview =
+        document.createElement("h3");
+
+      preview.className =
+        "block-preview__title";
+
+      preview.textContent =
+        content || "Título da cena";
+      break;
+
+    case "text":
+      preview =
+        document.createElement("p");
+
+      preview.className =
+        "block-preview__text";
+
+      preview.textContent =
+        content ||
+        "O texto narrativo aparecerá desta maneira.";
+      break;
+
+    case "system_message":
+      preview =
+        document.createElement("p");
+
+      preview.className =
+        "block-preview__system";
+
+      preview.textContent =
+        content ||
+        "MENSAGEM DO SISTEMA";
+      break;
+
+    case "ascii":
+      preview =
+        document.createElement("pre");
+
+      preview.className =
+        "block-preview__ascii";
+
+      preview.textContent =
+        content ||
+        "   .---.\n  /     \\\n |  O O  |\n  \\  ^  /";
+      break;
+
+    case "image":
+    case "pixel_art":
+      if (!mediaUrl) {
+        preview =
+          createPreviewPlaceholder(
+            "Informe o endereço da imagem."
+          );
+
+        break;
+      }
+
+      preview =
+        document.createElement("img");
+
+      preview.className =
+        "block-preview__image";
+
+      preview.src = mediaUrl;
+      preview.alt = altText;
+
+      if (blockType === "pixel_art") {
+        preview.classList.add(
+          "block-preview__pixel"
+        );
+      }
+      break;
+
+    case "audio":
+      if (!mediaUrl) {
+        preview =
+          createPreviewPlaceholder(
+            "Informe o endereço do áudio."
+          );
+
+        break;
+      }
+
+      preview =
+        document.createElement("audio");
+
+      preview.controls = true;
+      preview.src = mediaUrl;
+      break;
+
+    case "divider":
+      preview =
+        document.createElement("div");
+
+      preview.className =
+        "block-preview__divider";
+      break;
+
+    default:
+      preview =
+        createPreviewPlaceholder(
+          "Tipo de bloco desconhecido."
+        );
+  }
+
+  if (
+    preview &&
+    textColor &&
+    [
+      "title",
+      "text",
+      "system_message",
+      "ascii"
+    ].includes(blockType)
+  ) {
+    preview.style.color = textColor;
+  }
+
+  elements.blockPreview.appendChild(
+    preview
+  );
+}
+
+function createPreviewPlaceholder(text) {
+  const paragraph =
+    document.createElement("p");
+
+  paragraph.className =
+    "block-preview__placeholder";
+
+  paragraph.textContent = text;
+
+  return paragraph;
+}
+
+
+/* ==========================================================
+   SALVAR BLOCO
+   ========================================================== */
+
+async function handleBlockFormSubmit(event) {
+  event.preventDefault();
+
+  if (
+    state.isSavingBlock ||
+    !state.blocksSceneId
+  ) {
+    return;
+  }
+
+  const blockData =
+    collectBlockFormData();
+
+  const validationError =
+    validateBlockData(blockData);
+
+  if (validationError) {
+    showBlockFormMessage(
+      validationError,
+      "error"
+    );
+
+    return;
+  }
+
+  setBlockSaving(true);
+
+  showBlockFormMessage(
+    "SALVANDO BLOCO..."
+  );
+
+  try {
+    if (state.editingBlockId) {
+      await updateBlock(
+        state.editingBlockId,
+        blockData
+      );
+    } else {
+      await createBlock(blockData);
+    }
+
+    await state.client.rpc(
+      "normalize_scene_block_order",
+      {
+        p_scene_id: state.blocksSceneId
+      }
+    );
+
+    await loadSceneBlocks();
+
+    showBlockFormMessage(
+      "BLOCO SALVO COM SUCESSO.",
+      "success"
+    );
+
+    window.setTimeout(() => {
+      closeBlockFormModal();
+    }, 400);
+  } catch (error) {
+    console.error(
+      "Erro ao salvar bloco:",
+      error
+    );
+
+    showBlockFormMessage(
+      formatDatabaseError(error),
+      "error"
+    );
+  } finally {
+    setBlockSaving(false);
+  }
+}
+
+function collectBlockFormData() {
+  const blockType =
+    elements.blockType.value;
+
+  const usesText = [
+    "title",
+    "text",
+    "system_message",
+    "ascii"
+  ].includes(blockType);
+
+  const usesMedia = [
+    "image",
+    "pixel_art",
+    "audio"
+  ].includes(blockType);
+
+  return {
+    scene_id: state.blocksSceneId,
+
+    block_type: blockType,
+
+    content:
+      usesText
+        ? emptyToNull(
+            elements.blockContent.value
+          )
+        : null,
+
+    media_url:
+      usesMedia
+        ? emptyToNull(
+            elements.blockMediaUrl.value
+          )
+        : null,
+
+    alt_text:
+      [
+        "image",
+        "pixel_art"
+      ].includes(blockType)
+        ? emptyToNull(
+            elements.blockAltText.value
+          )
+        : null,
+
+    text_color:
+      [
+        "title",
+        "text",
+        "system_message",
+        "ascii"
+      ].includes(blockType)
+        ? emptyToNull(
+            elements.blockTextColor.value
+          )
+        : null,
+
+    animation_type:
+      elements.blockAnimation.value,
+
+    is_enabled:
+      elements.blockEnabled.checked
+  };
+}
+
+function validateBlockData(blockData) {
+  if (
+    [
+      "title",
+      "text",
+      "system_message",
+      "ascii"
+    ].includes(blockData.block_type) &&
+    !blockData.content
+  ) {
+    return "Escreva o conteúdo do bloco.";
+  }
+
+  if (
+    [
+      "image",
+      "pixel_art",
+      "audio"
+    ].includes(blockData.block_type) &&
+    !blockData.media_url
+  ) {
+    return "Informe o endereço da mídia.";
+  }
+
+  if (
+    blockData.text_color &&
+    !isValidHexColor(
+      blockData.text_color
+    )
+  ) {
+    return (
+      "Use uma cor hexadecimal completa, como #ff0000."
+    );
+  }
+
+  return null;
+}
+
+async function createBlock(blockData) {
+  const nextOrder =
+    state.blocks.length === 0
+      ? 10
+      : Math.max(
+          ...state.blocks.map(
+            block => block.display_order
+          )
+        ) + 10;
+
+  const {
+    data,
+    error
+  } = await state.client
+    .from("scene_blocks")
+    .insert({
+      ...blockData,
+      display_order: nextOrder
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+async function updateBlock(
+  blockId,
+  blockData
+) {
+  const {
+    scene_id,
+    ...editableData
+  } = blockData;
+
+  const {
+    data,
+    error
+  } = await state.client
+    .from("scene_blocks")
+    .update(editableData)
+    .eq("id", blockId)
+    .eq("scene_id", state.blocksSceneId)
+    .select("id")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+function setBlockSaving(isSaving) {
+  state.isSavingBlock = isSaving;
+
+  elements.blockForm
+    .querySelectorAll(
+      "input, textarea, select, button"
+    )
+    .forEach(control => {
+      control.disabled = isSaving;
+    });
+
+  elements.saveBlockButton.textContent =
+    isSaving
+      ? "SALVANDO..."
+      : "SALVAR BLOCO";
+}
+
+function showBlockFormMessage(
+  message,
+  type = ""
+) {
+  elements.blockFormMessage.className =
+    "form-message";
+
+  if (type) {
+    elements.blockFormMessage.classList.add(
+      `is-${type}`
+    );
+  }
+
+  elements.blockFormMessage.textContent =
+    message || "";
+}
+
+function clearBlockFormMessage() {
+  showBlockFormMessage("");
+}
+
+
+/* ==========================================================
+   REORDENAR
+   ========================================================== */
+
+async function moveBlock(
+  blockId,
+  direction
+) {
+  showBlocksMessage(
+    "REORGANIZANDO CONTEÚDO..."
+  );
+
+  const {
+    error
+  } = await state.client.rpc(
+    "move_scene_block",
+    {
+      p_block_id: blockId,
+      p_direction: direction
+    }
+  );
+
+  if (error) {
+    showBlocksMessage(
+      formatDatabaseError(error),
+      "error"
+    );
+
+    return;
+  }
+
+  await state.client.rpc(
+    "normalize_scene_block_order",
+    {
+      p_scene_id: state.blocksSceneId
+    }
+  );
+
+  await loadSceneBlocks();
+}
+
+
+/* ==========================================================
+   DUPLICAR
+   ========================================================== */
+
+async function duplicateBlock(blockId) {
+  const block = state.blocks.find(
+    item => item.id === blockId
+  );
+
+  if (!block) {
+    return;
+  }
+
+  showBlocksMessage(
+    "DUPLICANDO BLOCO..."
+  );
+
+  const {
+    error
+  } = await state.client
+    .from("scene_blocks")
+    .insert({
+      scene_id: block.scene_id,
+      block_type: block.block_type,
+      content: block.content,
+      media_url: block.media_url,
+      alt_text: block.alt_text,
+      text_color: block.text_color,
+      animation_type:
+        block.animation_type,
+      display_order:
+        block.display_order + 5,
+      is_enabled: false
+    });
+
+  if (error) {
+    showBlocksMessage(
+      formatDatabaseError(error),
+      "error"
+    );
+
+    return;
+  }
+
+  await state.client.rpc(
+    "normalize_scene_block_order",
+    {
+      p_scene_id: state.blocksSceneId
+    }
+  );
+
+  await loadSceneBlocks();
+}
+
+
+/* ==========================================================
+   ATIVAR OU DESATIVAR
+   ========================================================== */
+
+async function toggleBlock(blockId) {
+  const block = state.blocks.find(
+    item => item.id === blockId
+  );
+
+  if (!block) {
+    return;
+  }
+
+  const {
+    error
+  } = await state.client
+    .from("scene_blocks")
+    .update({
+      is_enabled: !block.is_enabled
+    })
+    .eq("id", block.id)
+    .eq("scene_id", state.blocksSceneId);
+
+  if (error) {
+    showBlocksMessage(
+      formatDatabaseError(error),
+      "error"
+    );
+
+    return;
+  }
+
+  await loadSceneBlocks();
+}
+
+
+/* ==========================================================
+   EXCLUIR
+   ========================================================== */
+
+async function deleteBlock(blockId) {
+  const block = state.blocks.find(
+    item => item.id === blockId
+  );
+
+  if (!block) {
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Excluir este bloco permanentemente?\n\n" +
+    "Essa ação não poderá ser desfeita."
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const {
+    error
+  } = await state.client
+    .from("scene_blocks")
+    .delete()
+    .eq("id", block.id)
+    .eq("scene_id", state.blocksSceneId);
+
+  if (error) {
+    showBlocksMessage(
+      formatDatabaseError(error),
+      "error"
+    );
+
+    return;
+  }
+
+  await state.client.rpc(
+    "normalize_scene_block_order",
+    {
+      p_scene_id: state.blocksSceneId
+    }
+  );
+
+  await loadSceneBlocks();
 }
