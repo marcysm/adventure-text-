@@ -22,8 +22,11 @@
   <main class="terminal">
     <section class="terminal__screen">
       <div class="terminal__status" aria-hidden="true">
-        <span class="status-light"></span>
-        <span>SISTEMA ATIVO</span>
+        <span id="status-light" class="status-light"></span>
+
+        <span id="connection-label">
+          INICIANDO SISTEMA
+        </span>
       </div>
 
       <p class="terminal__label">
@@ -33,25 +36,52 @@
       <h1>ADVENTURE TEXT</h1>
 
       <p class="terminal__message">
-        A conexão foi estabelecida.
+        Estabelecendo conexão com o arquivo central.
       </p>
 
       <p class="terminal__message">
-        O sistema narrativo ainda está sendo preparado.
+        Aguarde enquanto sua identidade é verificada.
       </p>
 
       <div class="terminal__divider"></div>
 
-      <p id="system-status" class="terminal__system-status">
-        Verificando arquivos...
+      <div class="player-data">
+        <p class="player-data__label">
+          IDENTIFICAÇÃO LOCAL
+        </p>
+
+        <p id="player-code" class="player-data__value">
+          GERANDO...
+        </p>
+      </div>
+
+      <p
+        id="system-status"
+        class="terminal__system-status"
+        aria-live="polite"
+      >
+        Conectando ao Supabase...
       </p>
 
-      <button id="test-button" type="button">
-        EXECUTAR TESTE
+      <button
+        id="test-button"
+        type="button"
+        disabled
+      >
+        TESTAR SALVAMENTO
       </button>
     </section>
   </main>
 
+  <!-- Biblioteca oficial supabase-js pela CDN. -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  ></script>
+
+  <!-- Configuração do projeto. -->
+  <script src="config.js"></script>
+
+  <!-- Funcionamento da página. -->
   <script src="app.js"></script>
 </body>
 </html>
