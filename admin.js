@@ -11,7 +11,6 @@ const state = {
 
   user: null,
   adminStatus: null,
-
   game: null,
 
   routes: [],
@@ -19,15 +18,14 @@ const state = {
   filteredScenes: [],
 
   editingSceneId: null,
-actionsSceneId: null,
+  actionsSceneId: null,
 
-blocksSceneId: null,
-blocks: [],
+  blocksSceneId: null,
+  blocks: [],
+  editingBlockId: null,
 
-editingBlockId: null,
-
-isSaving: false,
-isSavingBlock: false
+  isSaving: false,
+  isSavingBlock: false
 };
 
 const elements = {};
@@ -43,10 +41,10 @@ document.addEventListener(
 );
 
 async function initializeAdminPanel() {
-  cacheElements();
-  configureEvents();
-
   try {
+    cacheElements();
+    configureEvents();
+
     validateConfiguration();
 
     updateLoadingMessage(
@@ -55,7 +53,8 @@ async function initializeAdminPanel() {
 
     state.client = createAdminClient();
 
-    const session = await requireAdminSession();
+    const session =
+      await requireAdminSession();
 
     state.user = session.user;
 
@@ -79,11 +78,8 @@ async function initializeAdminPanel() {
     await loadPanelData();
 
     displayAdminIdentity();
-
     populateRouteSelectors();
-
     applySceneFilters();
-
     revealPanel();
   } catch (error) {
     console.error(
@@ -280,7 +276,7 @@ function cacheElements() {
       "toggle-scene-button"
     );
 
-     elements.blocksModal =
+  elements.blocksModal =
     document.getElementById(
       "blocks-modal"
     );
@@ -419,7 +415,7 @@ function cacheElements() {
     document.getElementById(
       "save-block-button"
     );
-   
+
   const missing = Object.entries(elements)
     .filter(([, element]) => !element)
     .map(([name]) => name);
@@ -507,17 +503,7 @@ function configureEvents() {
     toggleSelectedScene
   );
 
-  document.addEventListener("keydown", event => {
-    if (event.key !== "Escape") {
-      return;
-    }
-
-    closeBlockFormModal();
-closeBlocksModal();
-closeSceneModal();
-closeActionsModal();
-
-       elements.newBlockButton.addEventListener(
+  elements.newBlockButton.addEventListener(
     "click",
     openNewBlockModal
   );
@@ -576,8 +562,52 @@ closeActionsModal();
     "input",
     handleBlockColorPickerInput
   );
-     
-  });
+
+  document.addEventListener(
+    "keydown",
+    handleEscapeKey
+  );
+}
+
+function handleEscapeKey(event) {
+  if (event.key !== "Escape") {
+    return;
+  }
+
+  if (
+    !elements.blockFormModal.classList.contains(
+      "is-hidden"
+    )
+  ) {
+    closeBlockFormModal();
+    return;
+  }
+
+  if (
+    !elements.blocksModal.classList.contains(
+      "is-hidden"
+    )
+  ) {
+    closeBlocksModal();
+    return;
+  }
+
+  if (
+    !elements.sceneModal.classList.contains(
+      "is-hidden"
+    )
+  ) {
+    closeSceneModal();
+    return;
+  }
+
+  if (
+    !elements.sceneActionsModal.classList.contains(
+      "is-hidden"
+    )
+  ) {
+    closeActionsModal();
+  }
 }
 
 
@@ -594,6 +624,15 @@ function validateConfiguration() {
       "Configuração do Supabase ausente."
     );
   }
+
+  if (
+    !window.APP_CONFIG.supabaseUrl ||
+    !window.APP_CONFIG.supabasePublishableKey
+  ) {
+    throw new Error(
+      "Endereço ou chave pública do Supabase ausente."
+    );
+  }
 }
 
 function createAdminClient() {
@@ -606,9 +645,7 @@ function createAdminClient() {
           "artist-valley-admin-auth",
 
         persistSession: true,
-
         autoRefreshToken: true,
-
         detectSessionInUrl: true
       }
     }
@@ -770,8 +807,11 @@ async function loadPanelData() {
     throw scenesResult.error;
   }
 
-  state.routes = routesResult.data || [];
-  state.scenes = scenesResult.data || [];
+  state.routes =
+    routesResult.data || [];
+
+  state.scenes =
+    scenesResult.data || [];
 }
 
 async function refreshScenes() {
@@ -854,16 +894,31 @@ function updateLoadingMessage(message) {
    ========================================================== */
 
 function populateRouteSelectors() {
+  elements.routeFilter
+    .querySelectorAll(
+      'option[data-dynamic-route="true"]'
+    )
+    .forEach(option => option.remove());
+
+  elements.sceneRoute
+    .querySelectorAll(
+      'option[data-dynamic-route="true"]'
+    )
+    .forEach(option => option.remove());
+
   state.routes.forEach(route => {
+    const optionText =
+      route.is_secret
+        ? `${route.name} — secreta`
+        : route.name;
+
     const filterOption =
       document.createElement("option");
 
     filterOption.value = route.id;
-
-    filterOption.textContent =
-      route.is_secret
-        ? `${route.name} — secreta`
-        : route.name;
+    filterOption.textContent = optionText;
+    filterOption.dataset.dynamicRoute =
+      "true";
 
     elements.routeFilter.appendChild(
       filterOption
@@ -873,11 +928,9 @@ function populateRouteSelectors() {
       document.createElement("option");
 
     formOption.value = route.id;
-
-    formOption.textContent =
-      route.is_secret
-        ? `${route.name} — secreta`
-        : route.name;
+    formOption.textContent = optionText;
+    formOption.dataset.dynamicRoute =
+      "true";
 
     elements.sceneRoute.appendChild(
       formOption
@@ -909,15 +962,22 @@ function applySceneFilters() {
 
   state.filteredScenes =
     state.scenes.filter(scene => {
-      const searchableContent = normalizeText([
-        scene.title,
-        scene.scene_key,
-        scene.admin_description
-      ].filter(Boolean).join(" "));
+      const searchableContent =
+        normalizeText(
+          [
+            scene.title,
+            scene.scene_key,
+            scene.admin_description
+          ]
+            .filter(Boolean)
+            .join(" ")
+        );
 
       const matchesSearch =
         !searchTerm ||
-        searchableContent.includes(searchTerm);
+        searchableContent.includes(
+          searchTerm
+        );
 
       let matchesRoute = true;
 
@@ -958,7 +1018,6 @@ function applySceneFilters() {
     });
 
   updateSceneStatistics();
-
   renderSceneList();
 }
 
@@ -996,15 +1055,21 @@ function updateSceneStatistics() {
 function renderSceneList() {
   elements.sceneList.replaceChildren();
 
-  if (state.filteredScenes.length === 0) {
-    const empty = document.createElement("div");
+  if (
+    state.filteredScenes.length === 0
+  ) {
+    const empty =
+      document.createElement("div");
 
-    empty.className = "scene-list__empty";
+    empty.className =
+      "scene-list__empty";
 
     empty.textContent =
       "Nenhuma cena corresponde aos filtros selecionados.";
 
-    elements.sceneList.appendChild(empty);
+    elements.sceneList.appendChild(
+      empty
+    );
 
     showSceneListMessage(
       "NENHUMA CENA ENCONTRADA."
@@ -1022,7 +1087,9 @@ function renderSceneList() {
     );
   });
 
-  elements.sceneList.appendChild(fragment);
+  elements.sceneList.appendChild(
+    fragment
+  );
 
   showSceneListMessage(
     `${state.filteredScenes.length} CENA(S) EXIBIDA(S).`
@@ -1035,7 +1102,9 @@ function createSceneCard(scene) {
       .cloneNode(true);
 
   const card =
-    fragment.querySelector(".scene-card");
+    fragment.querySelector(
+      ".scene-card"
+    );
 
   const title =
     fragment.querySelector(
@@ -1072,11 +1141,11 @@ function createSceneCard(scene) {
       '[data-scene-meta="ending"]'
     );
 
-     const contentButton =
+  const contentButton =
     fragment.querySelector(
       '[data-action="content"]'
     );
-   
+
   const editButton =
     fragment.querySelector(
       '[data-action="edit"]'
@@ -1105,12 +1174,18 @@ function createSceneCard(scene) {
   identifier.textContent =
     scene.scene_key;
 
-  const route = getRouteById(scene.route_id);
+  const route =
+    getRouteById(scene.route_id);
 
   routeLabel.textContent =
     route
-      ? route.name.toLocaleUpperCase("pt-BR")
+      ? route.name.toLocaleUpperCase(
+          "pt-BR"
+        )
       : "TODAS AS ROTAS";
+
+  routeLabel.style.borderColor = "";
+  routeLabel.style.color = "";
 
   if (route?.primary_color) {
     routeLabel.style.borderColor =
@@ -1125,7 +1200,9 @@ function createSceneCard(scene) {
     "Nenhuma descrição administrativa.";
 
   helpMetadata.textContent =
-    `AJUDA: ${formatHelpMode(scene.help_mode)}`;
+    `AJUDA: ${formatHelpMode(
+      scene.help_mode
+    )}`;
 
   commandsMetadata.textContent =
     formatAllowedCommands(scene);
@@ -1137,9 +1214,14 @@ function createSceneCard(scene) {
         )}`
       : "";
 
-  contentButton.dataset.sceneId = scene.id;
-  editButton.dataset.sceneId = scene.id;
-  moreButton.dataset.sceneId = scene.id;
+  contentButton.dataset.sceneId =
+    scene.id;
+
+  editButton.dataset.sceneId =
+    scene.id;
+
+  moreButton.dataset.sceneId =
+    scene.id;
 
   return fragment;
 }
@@ -1221,13 +1303,14 @@ function handleSceneListClick(event) {
     return;
   }
 
-  const sceneId = button.dataset.sceneId;
+  const sceneId =
+    button.dataset.sceneId;
 
   if (!sceneId) {
     return;
   }
 
-   switch (button.dataset.action) {
+  switch (button.dataset.action) {
     case "content":
       openBlocksModal(sceneId);
       break;
@@ -1281,10 +1364,6 @@ function openEditSceneModal(sceneId) {
   elements.sceneModalTitle.textContent =
     scene.title || "Editar cena";
 
-  /*
-    O identificador é bloqueado após a criação para evitar
-    quebrar referências narrativas sem querer.
-  */
   elements.sceneKey.disabled = true;
 
   openSceneModal();
@@ -1297,14 +1376,11 @@ function openSceneModal() {
     "is-hidden"
   );
 
-  document.body.style.overflow = "hidden";
+  document.body.style.overflow =
+    "hidden";
 
   window.setTimeout(() => {
-    if (state.editingSceneId) {
-      elements.sceneTitle.focus();
-    } else {
-      elements.sceneTitle.focus();
-    }
+    elements.sceneTitle.focus();
   }, 50);
 }
 
@@ -1317,9 +1393,9 @@ function closeSceneModal() {
     "is-hidden"
   );
 
-  document.body.style.overflow = "";
-
   state.editingSceneId = null;
+
+  updateBodyOverflow();
 }
 
 function handleSceneModalClick(event) {
@@ -1336,9 +1412,9 @@ function resetSceneForm() {
   elements.sceneForm.reset();
 
   elements.sceneId.value = "";
-
   elements.sceneRoute.value = "";
-  elements.sceneHelpMode.value = "normal";
+  elements.sceneHelpMode.value =
+    "normal";
 
   elements.allowRepeat.checked = true;
   elements.allowInventory.checked = true;
@@ -1347,7 +1423,8 @@ function resetSceneForm() {
 
   elements.sceneEnabled.checked = true;
   elements.sceneEnding.checked = false;
-  elements.sceneEndingType.value = "neutral";
+  elements.sceneEndingType.value =
+    "neutral";
 
   elements.sceneKey.disabled = false;
 
@@ -1411,7 +1488,7 @@ function fillSceneForm(scene) {
 
 
 /* ==========================================================
-   INTERFACE DO FORMULÁRIO
+   INTERFACE DO FORMULÁRIO DA CENA
    ========================================================== */
 
 function updateHelpModeInterface() {
@@ -1491,7 +1568,8 @@ async function handleSceneFormSubmit(event) {
     return;
   }
 
-  const sceneData = collectSceneFormData();
+  const sceneData =
+    collectSceneFormData();
 
   const validationError =
     validateSceneData(sceneData);
@@ -1521,12 +1599,12 @@ async function handleSceneFormSubmit(event) {
       await createScene(sceneData);
     }
 
+    await refreshScenes();
+
     showSceneFormMessage(
       "CENA SALVA COM SUCESSO.",
       "success"
     );
-
-    await refreshScenes();
 
     window.setTimeout(() => {
       closeSceneModal();
@@ -1550,11 +1628,15 @@ function collectSceneFormData() {
   const isEnding =
     elements.sceneEnding.checked;
 
+  const helpMode =
+    elements.sceneHelpMode.value;
+
   return {
     game_id: state.game.id,
 
     route_id:
-      elements.sceneRoute.value || null,
+      elements.sceneRoute.value ||
+      null,
 
     scene_key:
       normalizeSceneKey(
@@ -1576,13 +1658,12 @@ function collectSceneFormData() {
         elements.sceneFallback.value
       ),
 
-    help_mode:
-      elements.sceneHelpMode.value,
+    help_mode: helpMode,
 
     help_text:
       (
-        elements.sceneHelpMode.value === "normal" ||
-        elements.sceneHelpMode.value === "custom"
+        helpMode === "normal" ||
+        helpMode === "custom"
       )
         ? emptyToNull(
             elements.sceneHelpText.value
@@ -1601,8 +1682,7 @@ function collectSceneFormData() {
     allow_map:
       elements.allowMap.checked,
 
-    is_ending:
-      isEnding,
+    is_ending: isEnding,
 
     ending_type:
       isEnding
@@ -1616,7 +1696,9 @@ function collectSceneFormData() {
 
 function validateSceneData(sceneData) {
   if (!sceneData.scene_key) {
-    return "Informe o identificador interno da cena.";
+    return (
+      "Informe o identificador interno da cena."
+    );
   }
 
   if (
@@ -1667,9 +1749,6 @@ async function updateScene(
   sceneId,
   sceneData
 ) {
-  /*
-    Não alteramos game_id nem scene_key durante a edição.
-  */
   const {
     game_id,
     scene_key,
@@ -1710,10 +1789,6 @@ function setSceneSaving(isSaving) {
     control.disabled = isSaving;
   });
 
-  /*
-    Se não estiver salvando, devolvemos o bloqueio
-    permanente do scene_key durante uma edição.
-  */
   if (!isSaving) {
     elements.sceneKey.disabled =
       Boolean(state.editingSceneId);
@@ -1771,7 +1846,8 @@ function openActionsModal(sceneId) {
     "is-hidden"
   );
 
-  document.body.style.overflow = "hidden";
+  document.body.style.overflow =
+    "hidden";
 }
 
 function closeActionsModal() {
@@ -1779,9 +1855,9 @@ function closeActionsModal() {
     "is-hidden"
   );
 
-  document.body.style.overflow = "";
-
   state.actionsSceneId = null;
+
+  updateBodyOverflow();
 }
 
 function handleActionsModalClick(event) {
@@ -1826,15 +1902,18 @@ function updateToggleSceneButton(scene) {
    ========================================================== */
 
 async function duplicateSelectedScene() {
-  const sourceScene = state.scenes.find(
-    scene => scene.id === state.actionsSceneId
-  );
+  const sourceScene =
+    state.scenes.find(
+      scene =>
+        scene.id === state.actionsSceneId
+    );
 
   if (!sourceScene) {
     return;
   }
 
-  elements.duplicateSceneButton.disabled = true;
+  elements.duplicateSceneButton.disabled =
+    true;
 
   try {
     const duplicatedKey =
@@ -1848,9 +1927,10 @@ async function duplicateSelectedScene() {
 
       scene_key: duplicatedKey,
 
-      title: sourceScene.title
-        ? `${sourceScene.title} — Cópia`
-        : "Cena duplicada",
+      title:
+        sourceScene.title
+          ? `${sourceScene.title} — Cópia`
+          : "Cena duplicada",
 
       admin_description:
         sourceScene.admin_description,
@@ -1886,7 +1966,9 @@ async function duplicateSelectedScene() {
     };
 
     const duplicatedScene =
-      await createScene(duplicateData);
+      await createScene(
+        duplicateData
+      );
 
     await refreshScenes();
 
@@ -1936,19 +2018,21 @@ function createAvailableDuplicateKey(
 
 
 /* ==========================================================
-   ATIVAR OU DESATIVAR
+   ATIVAR OU DESATIVAR CENA
    ========================================================== */
 
 async function toggleSelectedScene() {
   const scene = state.scenes.find(
-    item => item.id === state.actionsSceneId
+    item =>
+      item.id === state.actionsSceneId
   );
 
   if (!scene) {
     return;
   }
 
-  elements.toggleSceneButton.disabled = true;
+  elements.toggleSceneButton.disabled =
+    true;
 
   try {
     const {
@@ -1956,7 +2040,8 @@ async function toggleSelectedScene() {
     } = await state.client
       .from("scenes")
       .update({
-        is_enabled: !scene.is_enabled
+        is_enabled:
+          !scene.is_enabled
       })
       .eq("id", scene.id)
       .eq("game_id", state.game.id);
@@ -1985,79 +2070,6 @@ async function toggleSelectedScene() {
 
 
 /* ==========================================================
-   UTILIDADES
-   ========================================================== */
-
-function normalizeText(value) {
-  return String(value || "")
-    .toLocaleLowerCase("pt-BR")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function emptyToNull(value) {
-  const trimmed = String(value || "").trim();
-
-  return trimmed || null;
-}
-
-function formatDatabaseError(error) {
-  const message = String(
-    error?.message || "Erro desconhecido."
-  );
-
-  const lowerMessage =
-    message.toLocaleLowerCase("pt-BR");
-
-  if (
-    lowerMessage.includes(
-      "scenes_game_key_unique"
-    ) ||
-    lowerMessage.includes(
-      "duplicate key value"
-    )
-  ) {
-    return (
-      "Já existe uma cena com esse identificador interno."
-    );
-  }
-
-  if (
-    lowerMessage.includes(
-      "row-level security"
-    )
-  ) {
-    return (
-      "A operação foi bloqueada pelas permissões do banco."
-    );
-  }
-
-  if (
-    lowerMessage.includes(
-      "permission denied"
-    )
-  ) {
-    return (
-      "A conta não possui permissão para alterar esta tabela."
-    );
-  }
-
-  if (
-    lowerMessage.includes(
-      "failed to fetch"
-    )
-  ) {
-    return (
-      "Não foi possível alcançar o Supabase."
-    );
-  }
-
-  return message;
-}
-
-/* ==========================================================
    EDITOR DE BLOCOS
    ========================================================== */
 
@@ -2077,6 +2089,7 @@ async function openBlocksModal(sceneId) {
 
   state.blocksSceneId = scene.id;
   state.blocks = [];
+  state.editingBlockId = null;
 
   elements.blocksModalTitle.textContent =
     scene.title || "Cena sem título";
@@ -2084,13 +2097,31 @@ async function openBlocksModal(sceneId) {
   elements.blocksSceneIdentifier.textContent =
     scene.scene_key;
 
+  elements.blocksTotal.textContent =
+    "0 blocos";
+
+  elements.blocksList.replaceChildren();
+
   elements.blocksModal.classList.remove(
     "is-hidden"
   );
 
-  document.body.style.overflow = "hidden";
+  document.body.style.overflow =
+    "hidden";
 
-  await loadSceneBlocks();
+  try {
+    await loadSceneBlocks();
+  } catch (error) {
+    console.error(
+      "Erro ao carregar blocos:",
+      error
+    );
+
+    showBlocksMessage(
+      formatDatabaseError(error),
+      "error"
+    );
+  }
 }
 
 function closeBlocksModal() {
@@ -2098,14 +2129,19 @@ function closeBlocksModal() {
     return;
   }
 
+  elements.blockFormModal.classList.add(
+    "is-hidden"
+  );
+
   elements.blocksModal.classList.add(
     "is-hidden"
   );
 
-  document.body.style.overflow = "";
-
   state.blocksSceneId = null;
   state.blocks = [];
+  state.editingBlockId = null;
+
+  updateBodyOverflow();
 }
 
 function handleBlocksModalClick(event) {
@@ -2119,7 +2155,10 @@ function handleBlocksModalClick(event) {
 }
 
 async function loadSceneBlocks() {
-  if (!state.blocksSceneId) {
+  const requestedSceneId =
+    state.blocksSceneId;
+
+  if (!requestedSceneId) {
     return;
   }
 
@@ -2146,7 +2185,7 @@ async function loadSceneBlocks() {
       created_at,
       updated_at
     `)
-    .eq("scene_id", state.blocksSceneId)
+    .eq("scene_id", requestedSceneId)
     .order("display_order", {
       ascending: true
     })
@@ -2154,13 +2193,15 @@ async function loadSceneBlocks() {
       ascending: true
     });
 
-  if (error) {
-    showBlocksMessage(
-      formatDatabaseError(error),
-      "error"
-    );
-
+  if (
+    requestedSceneId !==
+    state.blocksSceneId
+  ) {
     return;
+  }
+
+  if (error) {
+    throw error;
   }
 
   state.blocks = data || [];
@@ -2189,7 +2230,9 @@ function renderBlocksList() {
       "Esta cena ainda não possui conteúdo. " +
       "Clique em + NOVO BLOCO para começar.";
 
-    elements.blocksList.appendChild(empty);
+    elements.blocksList.appendChild(
+      empty
+    );
 
     showBlocksMessage(
       "NENHUM BLOCO CADASTRADO."
@@ -2201,20 +2244,30 @@ function renderBlocksList() {
   const fragment =
     document.createDocumentFragment();
 
-  state.blocks.forEach((block, index) => {
-    fragment.appendChild(
-      createBlockCard(block, index)
-    );
-  });
+  state.blocks.forEach(
+    (block, index) => {
+      fragment.appendChild(
+        createBlockCard(
+          block,
+          index
+        )
+      );
+    }
+  );
 
-  elements.blocksList.appendChild(fragment);
+  elements.blocksList.appendChild(
+    fragment
+  );
 
   showBlocksMessage(
     "CONTEÚDO CARREGADO."
   );
 }
 
-function createBlockCard(block, index) {
+function createBlockCard(
+  block,
+  index
+) {
   const fragment =
     elements.blockCardTemplate.content
       .cloneNode(true);
@@ -2262,10 +2315,15 @@ function createBlockCard(block, index) {
   );
 
   position.textContent =
-    String(index + 1).padStart(2, "0");
+    String(index + 1).padStart(
+      2,
+      "0"
+    );
 
   type.textContent =
-    formatBlockType(block.block_type);
+    formatBlockType(
+      block.block_type
+    );
 
   animation.textContent =
     formatBlockAnimation(
@@ -2278,19 +2336,24 @@ function createBlockCard(block, index) {
       : "DESATIVADO";
 
   buttons.forEach(button => {
-    button.dataset.blockId = block.id;
+    button.dataset.blockId =
+      block.id;
 
     if (
-      button.dataset.blockAction === "up"
+      button.dataset.blockAction ===
+      "up"
     ) {
-      button.disabled = index === 0;
+      button.disabled =
+        index === 0;
     }
 
     if (
-      button.dataset.blockAction === "down"
+      button.dataset.blockAction ===
+      "down"
     ) {
       button.disabled =
-        index === state.blocks.length - 1;
+        index ===
+        state.blocks.length - 1;
     }
   });
 
@@ -2306,7 +2369,8 @@ function formatBlockType(blockType) {
   const names = {
     title: "TÍTULO",
     text: "TEXTO",
-    system_message: "MENSAGEM DO SISTEMA",
+    system_message:
+      "MENSAGEM DO SISTEMA",
     image: "IMAGEM",
     pixel_art: "PIXEL ART",
     ascii: "ASCII",
@@ -2317,17 +2381,24 @@ function formatBlockType(blockType) {
   return names[blockType] || blockType;
 }
 
-function formatBlockAnimation(animation) {
+function formatBlockAnimation(
+  animation
+) {
   const names = {
     none: "SEM ANIMAÇÃO",
     fade: "APARECER",
     typing: "DIGITAÇÃO",
     glitch: "GLITCH",
     blink: "PISCAR",
-    line_reveal: "REVELAR LINHAS"
+    line_reveal:
+      "REVELAR LINHAS"
   };
 
-  return names[animation] || animation;
+  return (
+    names[animation] ||
+    animation ||
+    "SEM ANIMAÇÃO"
+  );
 }
 
 function renderBlockCardPreview(
@@ -2352,7 +2423,9 @@ function renderBlockCardPreview(
           block.text_color;
       }
 
-      container.appendChild(paragraph);
+      container.appendChild(
+        paragraph
+      );
       break;
     }
 
@@ -2386,9 +2459,15 @@ function renderBlockCardPreview(
         document.createElement("img");
 
       image.src = block.media_url;
-      image.alt = block.alt_text || "";
+      image.alt =
+        block.alt_text || "";
 
-      if (block.block_type === "pixel_art") {
+      image.loading = "lazy";
+
+      if (
+        block.block_type ===
+        "pixel_art"
+      ) {
         image.style.imageRendering =
           "pixelated";
       }
@@ -2409,6 +2488,7 @@ function renderBlockCardPreview(
         document.createElement("audio");
 
       audio.controls = true;
+      audio.preload = "metadata";
       audio.src = block.media_url;
 
       container.appendChild(audio);
@@ -2422,7 +2502,9 @@ function renderBlockCardPreview(
       divider.className =
         "block-card__divider-preview";
 
-      container.appendChild(divider);
+      container.appendChild(
+        divider
+      );
       break;
     }
 
@@ -2454,12 +2536,14 @@ function showBlocksMessage(
    CLIQUES NOS BLOCOS
    ========================================================== */
 
-async function handleBlocksListClick(event) {
+async function handleBlocksListClick(
+  event
+) {
   const button = event.target.closest(
     "[data-block-action]"
   );
 
-  if (!button) {
+  if (!button || button.disabled) {
     return;
   }
 
@@ -2470,30 +2554,64 @@ async function handleBlocksListClick(event) {
     return;
   }
 
-  switch (button.dataset.blockAction) {
-    case "up":
-      await moveBlock(blockId, "up");
-      break;
+  button.disabled = true;
 
-    case "down":
-      await moveBlock(blockId, "down");
-      break;
+  try {
+    switch (
+      button.dataset.blockAction
+    ) {
+      case "up":
+        await moveBlock(
+          blockId,
+          "up"
+        );
+        break;
 
-    case "edit":
-      openEditBlockModal(blockId);
-      break;
+      case "down":
+        await moveBlock(
+          blockId,
+          "down"
+        );
+        break;
 
-    case "duplicate":
-      await duplicateBlock(blockId);
-      break;
+      case "edit":
+        openEditBlockModal(
+          blockId
+        );
+        break;
 
-    case "toggle":
-      await toggleBlock(blockId);
-      break;
+      case "duplicate":
+        await duplicateBlock(
+          blockId
+        );
+        break;
 
-    case "delete":
-      await deleteBlock(blockId);
-      break;
+      case "toggle":
+        await toggleBlock(
+          blockId
+        );
+        break;
+
+      case "delete":
+        await deleteBlock(
+          blockId
+        );
+        break;
+    }
+  } catch (error) {
+    console.error(
+      "Erro na ação do bloco:",
+      error
+    );
+
+    showBlocksMessage(
+      formatDatabaseError(error),
+      "error"
+    );
+  } finally {
+    if (button.isConnected) {
+      button.disabled = false;
+    }
   }
 }
 
@@ -2518,7 +2636,14 @@ function openNewBlockModal() {
     "is-hidden"
   );
 
+  document.body.style.overflow =
+    "hidden";
+
   renderBlockFormPreview();
+
+  window.setTimeout(() => {
+    elements.blockType.focus();
+  }, 50);
 }
 
 function openEditBlockModal(blockId) {
@@ -2527,6 +2652,11 @@ function openEditBlockModal(blockId) {
   );
 
   if (!block) {
+    showBlocksMessage(
+      "O bloco selecionado não foi encontrado.",
+      "error"
+    );
+
     return;
   }
 
@@ -2537,11 +2667,16 @@ function openEditBlockModal(blockId) {
   elements.blockFormTitle.textContent =
     `Editar ${formatBlockType(
       block.block_type
-    ).toLocaleLowerCase("pt-BR")}`;
+    ).toLocaleLowerCase(
+      "pt-BR"
+    )}`;
 
   elements.blockFormModal.classList.remove(
     "is-hidden"
   );
+
+  document.body.style.overflow =
+    "hidden";
 
   renderBlockFormPreview();
 }
@@ -2556,9 +2691,13 @@ function closeBlockFormModal() {
   );
 
   state.editingBlockId = null;
+
+  updateBodyOverflow();
 }
 
-function handleBlockFormModalClick(event) {
+function handleBlockFormModalClick(
+  event
+) {
   if (
     event.target.closest(
       "[data-close-block-form]"
@@ -2573,7 +2712,8 @@ function resetBlockForm() {
 
   elements.blockId.value = "";
   elements.blockType.value = "text";
-  elements.blockAnimation.value = "none";
+  elements.blockAnimation.value =
+    "none";
 
   elements.blockContent.value = "";
   elements.blockMediaUrl.value = "";
@@ -2583,7 +2723,8 @@ function resetBlockForm() {
   elements.blockColorPicker.value =
     "#e8e8e8";
 
-  elements.blockEnabled.checked = true;
+  elements.blockEnabled.checked =
+    true;
 
   updateBlockFormInterface();
   clearBlockFormMessage();
@@ -2597,7 +2738,8 @@ function fillBlockForm(block) {
     block.block_type;
 
   elements.blockAnimation.value =
-    block.animation_type || "none";
+    block.animation_type ||
+    "none";
 
   elements.blockContent.value =
     block.content || "";
@@ -2612,7 +2754,9 @@ function fillBlockForm(block) {
     block.text_color || "";
 
   elements.blockColorPicker.value =
-    isValidHexColor(block.text_color)
+    isValidHexColor(
+      block.text_color
+    )
       ? block.text_color
       : "#e8e8e8";
 
@@ -2669,16 +2813,20 @@ function updateBlockFormInterface() {
 
   elements.blockAppearanceGroup.classList.toggle(
     "is-hidden",
-    !usesColor && blockType === "divider"
+    !usesColor
   );
 
   if (blockType === "ascii") {
     elements.blockContentHelp.textContent =
       "Espaços e quebras de linha serão preservados.";
-  } else if (blockType === "system_message") {
+  } else if (
+    blockType === "system_message"
+  ) {
     elements.blockContentHelp.textContent =
       "Será exibido como uma mensagem técnica do terminal.";
-  } else if (blockType === "title") {
+  } else if (
+    blockType === "title"
+  ) {
     elements.blockContentHelp.textContent =
       "Será exibido como um título dentro da cena.";
   } else {
@@ -2691,7 +2839,8 @@ function updateBlockFormInterface() {
 
 function handleBlockTextColorInput() {
   const color =
-    elements.blockTextColor.value.trim();
+    elements.blockTextColor.value
+      .trim();
 
   if (isValidHexColor(color)) {
     elements.blockColorPicker.value =
@@ -2716,7 +2865,7 @@ function isValidHexColor(value) {
 
 
 /* ==========================================================
-   PRÉ-VISUALIZAÇÃO DO FORMULÁRIO
+   PRÉ-VISUALIZAÇÃO DO BLOCO
    ========================================================== */
 
 function renderBlockFormPreview() {
@@ -2729,13 +2878,16 @@ function renderBlockFormPreview() {
     elements.blockContent.value;
 
   const mediaUrl =
-    elements.blockMediaUrl.value.trim();
+    elements.blockMediaUrl.value
+      .trim();
 
   const altText =
-    elements.blockAltText.value.trim();
+    elements.blockAltText.value
+      .trim();
 
   const textColor =
-    elements.blockTextColor.value.trim();
+    elements.blockTextColor.value
+      .trim();
 
   let preview = null;
 
@@ -2807,7 +2959,9 @@ function renderBlockFormPreview() {
       preview.src = mediaUrl;
       preview.alt = altText;
 
-      if (blockType === "pixel_art") {
+      if (
+        blockType === "pixel_art"
+      ) {
         preview.classList.add(
           "block-preview__pixel"
         );
@@ -2828,6 +2982,7 @@ function renderBlockFormPreview() {
         document.createElement("audio");
 
       preview.controls = true;
+      preview.preload = "metadata";
       preview.src = mediaUrl;
       break;
 
@@ -2864,7 +3019,9 @@ function renderBlockFormPreview() {
   );
 }
 
-function createPreviewPlaceholder(text) {
+function createPreviewPlaceholder(
+  text
+) {
   const paragraph =
     document.createElement("p");
 
@@ -2881,7 +3038,9 @@ function createPreviewPlaceholder(text) {
    SALVAR BLOCO
    ========================================================== */
 
-async function handleBlockFormSubmit(event) {
+async function handleBlockFormSubmit(
+  event
+) {
   event.preventDefault();
 
   if (
@@ -2922,11 +3081,8 @@ async function handleBlockFormSubmit(event) {
       await createBlock(blockData);
     }
 
-    await state.client.rpc(
-      "normalize_scene_block_order",
-      {
-        p_scene_id: state.blocksSceneId
-      }
+    await normalizeSceneBlockOrder(
+      state.blocksSceneId
     );
 
     await loadSceneBlocks();
@@ -2971,10 +3127,24 @@ function collectBlockFormData() {
     "audio"
   ].includes(blockType);
 
-  return {
-    scene_id: state.blocksSceneId,
+  const usesAlt = [
+    "image",
+    "pixel_art"
+  ].includes(blockType);
 
-    block_type: blockType,
+  const usesColor = [
+    "title",
+    "text",
+    "system_message",
+    "ascii"
+  ].includes(blockType);
+
+  return {
+    scene_id:
+      state.blocksSceneId,
+
+    block_type:
+      blockType,
 
     content:
       usesText
@@ -2991,22 +3161,14 @@ function collectBlockFormData() {
         : null,
 
     alt_text:
-      [
-        "image",
-        "pixel_art"
-      ].includes(blockType)
+      usesAlt
         ? emptyToNull(
             elements.blockAltText.value
           )
         : null,
 
     text_color:
-      [
-        "title",
-        "text",
-        "system_message",
-        "ascii"
-      ].includes(blockType)
+      usesColor
         ? emptyToNull(
             elements.blockTextColor.value
           )
@@ -3027,10 +3189,14 @@ function validateBlockData(blockData) {
       "text",
       "system_message",
       "ascii"
-    ].includes(blockData.block_type) &&
+    ].includes(
+      blockData.block_type
+    ) &&
     !blockData.content
   ) {
-    return "Escreva o conteúdo do bloco.";
+    return (
+      "Escreva o conteúdo do bloco."
+    );
   }
 
   if (
@@ -3038,10 +3204,25 @@ function validateBlockData(blockData) {
       "image",
       "pixel_art",
       "audio"
-    ].includes(blockData.block_type) &&
+    ].includes(
+      blockData.block_type
+    ) &&
     !blockData.media_url
   ) {
-    return "Informe o endereço da mídia.";
+    return (
+      "Informe o endereço da mídia."
+    );
+  }
+
+  if (
+    blockData.media_url &&
+    !isValidHttpUrl(
+      blockData.media_url
+    )
+  ) {
+    return (
+      "Informe um endereço válido começando com http:// ou https://."
+    );
   }
 
   if (
@@ -3059,13 +3240,18 @@ function validateBlockData(blockData) {
 }
 
 async function createBlock(blockData) {
+  const existingOrders =
+    state.blocks
+      .map(block =>
+        Number(block.display_order)
+      )
+      .filter(Number.isFinite);
+
   const nextOrder =
-    state.blocks.length === 0
+    existingOrders.length === 0
       ? 10
       : Math.max(
-          ...state.blocks.map(
-            block => block.display_order
-          )
+          ...existingOrders
         ) + 10;
 
   const {
@@ -3103,7 +3289,10 @@ async function updateBlock(
     .from("scene_blocks")
     .update(editableData)
     .eq("id", blockId)
-    .eq("scene_id", state.blocksSceneId)
+    .eq(
+      "scene_id",
+      state.blocksSceneId
+    )
     .select("id")
     .single();
 
@@ -3154,13 +3343,46 @@ function clearBlockFormMessage() {
 
 
 /* ==========================================================
-   REORDENAR
+   NORMALIZAR ORDEM DOS BLOCOS
+   ========================================================== */
+
+async function normalizeSceneBlockOrder(
+  sceneId
+) {
+  if (!sceneId) {
+    return;
+  }
+
+  const {
+    error
+  } = await state.client.rpc(
+    "normalize_scene_block_order",
+    {
+      p_scene_id: sceneId
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
+}
+
+
+/* ==========================================================
+   REORDENAR BLOCOS
    ========================================================== */
 
 async function moveBlock(
   blockId,
   direction
 ) {
+  if (
+    direction !== "up" &&
+    direction !== "down"
+  ) {
+    return;
+  }
+
   showBlocksMessage(
     "REORGANIZANDO CONTEÚDO..."
   );
@@ -3176,19 +3398,11 @@ async function moveBlock(
   );
 
   if (error) {
-    showBlocksMessage(
-      formatDatabaseError(error),
-      "error"
-    );
-
-    return;
+    throw error;
   }
 
-  await state.client.rpc(
-    "normalize_scene_block_order",
-    {
-      p_scene_id: state.blocksSceneId
-    }
+  await normalizeSceneBlockOrder(
+    state.blocksSceneId
   );
 
   await loadSceneBlocks();
@@ -3196,7 +3410,7 @@ async function moveBlock(
 
 
 /* ==========================================================
-   DUPLICAR
+   DUPLICAR BLOCO
    ========================================================== */
 
 async function duplicateBlock(blockId) {
@@ -3223,27 +3437,24 @@ async function duplicateBlock(blockId) {
       media_url: block.media_url,
       alt_text: block.alt_text,
       text_color: block.text_color,
+
       animation_type:
         block.animation_type,
+
       display_order:
-        block.display_order + 5,
+        Number(
+          block.display_order
+        ) + 5,
+
       is_enabled: false
     });
 
   if (error) {
-    showBlocksMessage(
-      formatDatabaseError(error),
-      "error"
-    );
-
-    return;
+    throw error;
   }
 
-  await state.client.rpc(
-    "normalize_scene_block_order",
-    {
-      p_scene_id: state.blocksSceneId
-    }
+  await normalizeSceneBlockOrder(
+    state.blocksSceneId
   );
 
   await loadSceneBlocks();
@@ -3251,7 +3462,7 @@ async function duplicateBlock(blockId) {
 
 
 /* ==========================================================
-   ATIVAR OU DESATIVAR
+   ATIVAR OU DESATIVAR BLOCO
    ========================================================== */
 
 async function toggleBlock(blockId) {
@@ -3263,23 +3474,28 @@ async function toggleBlock(blockId) {
     return;
   }
 
+  showBlocksMessage(
+    block.is_enabled
+      ? "DESATIVANDO BLOCO..."
+      : "ATIVANDO BLOCO..."
+  );
+
   const {
     error
   } = await state.client
     .from("scene_blocks")
     .update({
-      is_enabled: !block.is_enabled
+      is_enabled:
+        !block.is_enabled
     })
     .eq("id", block.id)
-    .eq("scene_id", state.blocksSceneId);
-
-  if (error) {
-    showBlocksMessage(
-      formatDatabaseError(error),
-      "error"
+    .eq(
+      "scene_id",
+      state.blocksSceneId
     );
 
-    return;
+  if (error) {
+    throw error;
   }
 
   await loadSceneBlocks();
@@ -3287,7 +3503,7 @@ async function toggleBlock(blockId) {
 
 
 /* ==========================================================
-   EXCLUIR
+   EXCLUIR BLOCO
    ========================================================== */
 
 async function deleteBlock(blockId) {
@@ -3308,29 +3524,192 @@ async function deleteBlock(blockId) {
     return;
   }
 
+  showBlocksMessage(
+    "EXCLUINDO BLOCO..."
+  );
+
   const {
     error
   } = await state.client
     .from("scene_blocks")
     .delete()
     .eq("id", block.id)
-    .eq("scene_id", state.blocksSceneId);
-
-  if (error) {
-    showBlocksMessage(
-      formatDatabaseError(error),
-      "error"
+    .eq(
+      "scene_id",
+      state.blocksSceneId
     );
 
-    return;
+  if (error) {
+    throw error;
   }
 
-  await state.client.rpc(
-    "normalize_scene_block_order",
-    {
-      p_scene_id: state.blocksSceneId
-    }
+  await normalizeSceneBlockOrder(
+    state.blocksSceneId
   );
 
   await loadSceneBlocks();
+}
+
+
+/* ==========================================================
+   UTILIDADES DE INTERFACE
+   ========================================================== */
+
+function updateBodyOverflow() {
+  const hasOpenModal = [
+    elements.sceneModal,
+    elements.sceneActionsModal,
+    elements.blocksModal,
+    elements.blockFormModal
+  ].some(
+    modal =>
+      modal &&
+      !modal.classList.contains(
+        "is-hidden"
+      )
+  );
+
+  document.body.style.overflow =
+    hasOpenModal
+      ? "hidden"
+      : "";
+}
+
+
+/* ==========================================================
+   UTILIDADES GERAIS
+   ========================================================== */
+
+function normalizeText(value) {
+  return String(value || "")
+    .toLocaleLowerCase("pt-BR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function emptyToNull(value) {
+  const trimmed =
+    String(value || "").trim();
+
+  return trimmed || null;
+}
+
+function isValidHttpUrl(value) {
+  try {
+    const url =
+      new URL(String(value));
+
+    return (
+      url.protocol === "http:" ||
+      url.protocol === "https:"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function formatDatabaseError(error) {
+  const message = String(
+    error?.message ||
+    error?.details ||
+    "Erro desconhecido."
+  );
+
+  const lowerMessage =
+    message.toLocaleLowerCase(
+      "pt-BR"
+    );
+
+  if (
+    lowerMessage.includes(
+      "scenes_game_key_unique"
+    ) ||
+    lowerMessage.includes(
+      "duplicate key value"
+    )
+  ) {
+    return (
+      "Já existe uma cena com esse identificador interno."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "row-level security"
+    ) ||
+    lowerMessage.includes(
+      "violates row-level security"
+    )
+  ) {
+    return (
+      "A operação foi bloqueada pelas permissões do banco."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "permission denied"
+    )
+  ) {
+    return (
+      "A conta não possui permissão para alterar esta tabela."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "failed to fetch"
+    ) ||
+    lowerMessage.includes(
+      "networkerror"
+    )
+  ) {
+    return (
+      "Não foi possível alcançar o Supabase. Confira sua internet e tente novamente."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "normalize_scene_block_order"
+    )
+  ) {
+    return (
+      "A função de organização dos blocos não foi encontrada ou não possui permissão."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "move_scene_block"
+    )
+  ) {
+    return (
+      "A função de movimentação dos blocos não foi encontrada ou não possui permissão."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "foreign key constraint"
+    )
+  ) {
+    return (
+      "Não foi possível concluir a operação porque existem dados relacionados."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "check constraint"
+    )
+  ) {
+    return (
+      "Um dos valores informados não é aceito pelo banco de dados."
+    );
+  }
+
+  return message;
 }
