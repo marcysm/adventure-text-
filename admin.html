@@ -771,7 +771,465 @@
     </section>
   </div>
 
+<!-- =====================================================
+     MODAL DE CONTEÚDO DA CENA
+     ===================================================== -->
 
+<div
+  id="blocks-modal"
+  class="modal is-hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="blocks-modal-title"
+>
+  <div
+    class="modal__backdrop"
+    data-close-blocks-modal
+  ></div>
+
+  <section class="modal__panel modal__panel--blocks">
+    <header class="modal__header">
+      <div>
+        <p class="modal__eyebrow">
+          CONTEÚDO NARRATIVO
+        </p>
+
+        <h2 id="blocks-modal-title">
+          Conteúdo da cena
+        </h2>
+
+        <p
+          id="blocks-scene-identifier"
+          class="modal__subtitle"
+        ></p>
+      </div>
+
+      <button
+        class="modal__close"
+        type="button"
+        data-close-blocks-modal
+        aria-label="Fechar editor de conteúdo"
+      >
+        ×
+      </button>
+    </header>
+
+    <div class="blocks-toolbar">
+      <div>
+        <strong id="blocks-total">
+          0 blocos
+        </strong>
+
+        <span>
+          A ordem abaixo será a ordem mostrada no jogo.
+        </span>
+      </div>
+
+      <button
+        id="new-block-button"
+        class="button button--primary"
+        type="button"
+      >
+        + NOVO BLOCO
+      </button>
+    </div>
+
+    <p
+      id="blocks-message"
+      class="scene-list-message"
+      aria-live="polite"
+    ></p>
+
+    <div id="blocks-list" class="blocks-list">
+      <!-- Criado pelo JavaScript. -->
+    </div>
+  </section>
+</div>
+
+
+<!-- =====================================================
+     MODAL DE CRIAÇÃO E EDIÇÃO DO BLOCO
+     ===================================================== -->
+
+<div
+  id="block-form-modal"
+  class="modal is-hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="block-form-title"
+>
+  <div
+    class="modal__backdrop"
+    data-close-block-form
+  ></div>
+
+  <section class="modal__panel modal__panel--block-form">
+    <header class="modal__header">
+      <div>
+        <p class="modal__eyebrow">
+          ELEMENTO DA CENA
+        </p>
+
+        <h2 id="block-form-title">
+          Novo bloco
+        </h2>
+      </div>
+
+      <button
+        class="modal__close"
+        type="button"
+        data-close-block-form
+        aria-label="Fechar formulário"
+      >
+        ×
+      </button>
+    </header>
+
+    <form id="block-form" class="scene-form">
+      <input id="block-id" type="hidden">
+
+      <fieldset class="form-group">
+        <legend>Tipo de conteúdo</legend>
+
+        <div class="form-grid form-grid--two">
+          <div class="field">
+            <label for="block-type">
+              TIPO *
+            </label>
+
+            <select id="block-type" required>
+              <option value="text">
+                Texto narrativo
+              </option>
+
+              <option value="title">
+                Título intermediário
+              </option>
+
+              <option value="system_message">
+                Mensagem do sistema
+              </option>
+
+              <option value="image">
+                Imagem
+              </option>
+
+              <option value="pixel_art">
+                Pixel art
+              </option>
+
+              <option value="ascii">
+                Arte ASCII
+              </option>
+
+              <option value="divider">
+                Divisor
+              </option>
+
+              <option value="audio">
+                Áudio
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="block-animation">
+              EFEITO DE ENTRADA
+            </label>
+
+            <select id="block-animation">
+              <option value="none">
+                Nenhum
+              </option>
+
+              <option value="fade">
+                Aparecer suavemente
+              </option>
+
+              <option value="typing">
+                Digitação
+              </option>
+
+              <option value="glitch">
+                Falha / Glitch
+              </option>
+
+              <option value="blink">
+                Piscar
+              </option>
+
+              <option value="line_reveal">
+                Revelar por linhas
+              </option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+
+      <fieldset
+        id="block-content-group"
+        class="form-group"
+      >
+        <legend>Conteúdo</legend>
+
+        <div
+          id="block-text-field"
+          class="field"
+        >
+          <label for="block-content">
+            TEXTO
+          </label>
+
+          <textarea
+            id="block-content"
+            rows="8"
+            maxlength="10000"
+            placeholder="Escreva o conteúdo..."
+          ></textarea>
+
+          <small id="block-content-help">
+            O texto será mostrado exatamente como foi escrito.
+          </small>
+        </div>
+
+        <div
+          id="block-media-field"
+          class="field is-hidden"
+        >
+          <label for="block-media-url">
+            ENDEREÇO DA MÍDIA
+          </label>
+
+          <input
+            id="block-media-url"
+            type="url"
+            maxlength="2000"
+            placeholder="https://..."
+          >
+
+          <small>
+            Nesta etapa usamos o endereço da imagem ou do áudio.
+            O envio direto de arquivos será criado depois.
+          </small>
+        </div>
+
+        <div
+          id="block-alt-field"
+          class="field is-hidden"
+        >
+          <label for="block-alt-text">
+            DESCRIÇÃO DA IMAGEM
+          </label>
+
+          <input
+            id="block-alt-text"
+            type="text"
+            maxlength="500"
+            placeholder="Ex.: Quarto escuro com uma janela aberta"
+          >
+
+          <small>
+            Importante para acessibilidade e para casos
+            em que a imagem não carregar.
+          </small>
+        </div>
+      </fieldset>
+
+
+      <fieldset
+        id="block-appearance-group"
+        class="form-group"
+      >
+        <legend>Aparência</legend>
+
+        <div class="form-grid form-grid--two">
+          <div class="field">
+            <label for="block-text-color">
+              COR DO TEXTO
+            </label>
+
+            <div class="color-field">
+              <input
+                id="block-color-picker"
+                type="color"
+                value="#e8e8e8"
+              >
+
+              <input
+                id="block-text-color"
+                type="text"
+                maxlength="20"
+                placeholder="#e8e8e8"
+              >
+            </div>
+
+            <small>
+              Deixe o campo de texto vazio para usar a cor da rota.
+            </small>
+          </div>
+
+          <div class="field">
+            <label for="block-enabled">
+              ESTADO
+            </label>
+
+            <label class="toggle-option toggle-option--compact">
+              <input
+                id="block-enabled"
+                type="checkbox"
+                checked
+              >
+
+              <span class="toggle-option__control"></span>
+
+              <span>
+                <strong>BLOCO ATIVO</strong>
+
+                <small>
+                  Blocos desativados não aparecem para o jogador.
+                </small>
+              </span>
+            </label>
+          </div>
+        </div>
+      </fieldset>
+
+
+      <fieldset class="form-group">
+        <legend>Pré-visualização</legend>
+
+        <div
+          id="block-preview"
+          class="block-preview"
+        >
+          <p class="block-preview__placeholder">
+            A pré-visualização aparecerá aqui.
+          </p>
+        </div>
+      </fieldset>
+
+      <p
+        id="block-form-message"
+        class="form-message"
+        aria-live="polite"
+      ></p>
+
+      <footer class="form-actions">
+        <button
+          class="button button--secondary"
+          type="button"
+          data-close-block-form
+        >
+          CANCELAR
+        </button>
+
+        <button
+          id="save-block-button"
+          class="button button--primary"
+          type="submit"
+        >
+          SALVAR BLOCO
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+
+
+<!-- =====================================================
+     TEMPLATE DO CARTÃO DE BLOCO
+     ===================================================== -->
+
+<template id="block-card-template">
+  <article class="block-card">
+    <div class="block-card__order">
+      <button
+        type="button"
+        data-block-action="up"
+        title="Mover para cima"
+        aria-label="Mover bloco para cima"
+      >
+        ↑
+      </button>
+
+      <span class="block-card__position">
+        01
+      </span>
+
+      <button
+        type="button"
+        data-block-action="down"
+        title="Mover para baixo"
+        aria-label="Mover bloco para baixo"
+      >
+        ↓
+      </button>
+    </div>
+
+    <div class="block-card__content">
+      <header class="block-card__header">
+        <div>
+          <span class="block-card__type">
+            TEXTO
+          </span>
+
+          <span class="block-card__animation">
+            SEM ANIMAÇÃO
+          </span>
+        </div>
+
+        <span class="block-card__state">
+          ATIVO
+        </span>
+      </header>
+
+      <div class="block-card__preview"></div>
+    </div>
+
+    <div class="block-card__actions">
+      <button
+        class="button button--secondary"
+        type="button"
+        data-block-action="edit"
+      >
+        EDITAR
+      </button>
+
+      <button
+        class="button button--icon"
+        type="button"
+        data-block-action="duplicate"
+        title="Duplicar bloco"
+        aria-label="Duplicar bloco"
+      >
+        ⧉
+      </button>
+
+      <button
+        class="button button--icon"
+        type="button"
+        data-block-action="toggle"
+        title="Ativar ou desativar"
+        aria-label="Ativar ou desativar bloco"
+      >
+        ◉
+      </button>
+
+      <button
+        class="button button--icon button--danger"
+        type="button"
+        data-block-action="delete"
+        title="Excluir bloco"
+        aria-label="Excluir bloco"
+      >
+        ×
+      </button>
+    </div>
+  </article>
+</template>
+
+  
   <!-- =====================================================
        TEMPLATES
        ===================================================== -->
@@ -804,24 +1262,32 @@
         </div>
       </div>
 
-      <div class="scene-card__actions">
-        <button
-          class="button button--secondary"
-          type="button"
-          data-action="edit"
-        >
-          EDITAR
-        </button>
+     <div class="scene-card__actions">
+  <button
+    class="button button--secondary"
+    type="button"
+    data-action="content"
+  >
+    CONTEÚDO
+  </button>
 
-        <button
-          class="button button--icon"
-          type="button"
-          data-action="more"
-          aria-label="Mais ações"
-        >
-          •••
-        </button>
-      </div>
+  <button
+    class="button button--secondary"
+    type="button"
+    data-action="edit"
+  >
+    EDITAR
+  </button>
+
+  <button
+    class="button button--icon"
+    type="button"
+    data-action="more"
+    aria-label="Mais ações"
+  >
+    •••
+  </button>
+</div>
     </article>
   </template>
 
