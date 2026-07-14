@@ -888,10 +888,21 @@ async function handleCommandSubmit(event) {
       displayedText: originalInput
     });
 
-    const normalizedInput = normalizeText(originalInput);
+const normalizedInput = normalizeText(originalInput);
 
-    const systemCommand =
-      identifySystemCommand(normalizedInput);
+/*
+  Antes de procurar comandos ou respostas normais,
+  o banco verifica se foi digitado um código secreto.
+*/
+const secretWasActivated =
+  await tryExecuteSecretCode(originalInput);
+
+if (secretWasActivated) {
+  return;
+}
+
+const systemCommand =
+  identifySystemCommand(normalizedInput);
 
     if (systemCommand) {
       await executeSystemCommand(systemCommand);
@@ -1072,6 +1083,82 @@ function responseConditionsPass(
   ) {
     return false;
   }
+
+  return true;
+}
+
+/* ==========================================================
+   CÓDIGOS SECRETOS
+   ========================================================== */
+
+async function tryExecuteSecretCode(originalInput) {
+  const {
+    data,
+    error
+  } = await state.client.rpc(
+    "process_secret_code",
+    {
+      p_session_id: state.session.id,
+      p_input: originalInput
+    }
+  );
+
+  if (error) {
+    console.error(
+      "Erro ao verificar código secreto:",
+      error
+    );
+
+    throw error;
+  }
+
+  if (!data?.matched) {
+    return false;
+  }
+
+  if (data.message) {
+    showSystemMessage(
+      data.message,
+      "response"
+    );
+
+    await wait(1200);
+  }
+
+  /*
+    Atualizamos o estado local com o resultado
+    devolvido pela função segura.
+  */
+  state.session.current_scene_id =
+    data.current_scene_id;
+
+  state.session.route_id =
+    data.route_id;
+
+  /*
+    A rota e a cena são carregadas novamente.
+  */
+  await loadCurrentRoute();
+
+  updatePermanentInterface();
+
+  clearSystemMessage();
+
+  await loadCurrentScene();
+
+  /*
+    Pequeno efeito visual quando uma rota secreta
+    é ativada.
+  */
+  document.body.classList.add(
+    "secret-route-activated"
+  );
+
+  window.setTimeout(() => {
+    document.body.classList.remove(
+      "secret-route-activated"
+    );
+  }, 1300);
 
   return true;
 }
