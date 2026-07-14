@@ -19,14 +19,31 @@
 </head>
 
 <body>
+  <!-- =====================================================
+       CARREGAMENTO INICIAL
+       ===================================================== -->
+
   <div id="admin-loading" class="admin-loading">
-    VERIFICANDO AUTORIZAÇÃO...
+    <span class="admin-loading__light"></span>
+
+    <span id="admin-loading-message">
+      VERIFICANDO AUTORIZAÇÃO...
+    </span>
   </div>
+
+
+  <!-- =====================================================
+       APLICAÇÃO
+       ===================================================== -->
 
   <main
     id="admin-application"
     class="admin-application is-hidden"
   >
+    <!-- ===================================================
+         CABEÇALHO
+         =================================================== -->
+
     <header class="admin-header">
       <div>
         <p class="admin-header__eyebrow">
@@ -37,12 +54,18 @@
       </div>
 
       <div class="admin-header__actions">
-        <a href="index.html">
+        <a
+          class="button button--secondary"
+          href="index.html"
+          target="_blank"
+          rel="noopener"
+        >
           ABRIR JOGO
         </a>
 
         <button
           id="logout-button"
+          class="button button--secondary"
           type="button"
         >
           SAIR
@@ -50,72 +73,762 @@
       </div>
     </header>
 
-    <section class="admin-welcome">
-      <p class="admin-welcome__status">
-        ACESSO ADMINISTRATIVO CONFIRMADO
+
+    <!-- ===================================================
+         IDENTIDADE
+         =================================================== -->
+
+    <section class="admin-identity">
+      <div>
+        <span class="admin-identity__status"></span>
+
+        <div>
+          <p class="admin-identity__label">
+            ADMINISTRADOR
+          </p>
+
+          <p id="admin-name" class="admin-identity__value">
+            Carregando...
+          </p>
+        </div>
+      </div>
+
+      <p id="admin-email" class="admin-identity__email">
+        Carregando...
       </p>
-
-      <h2>
-        O painel está conectado.
-      </h2>
-
-      <p>
-        Na próxima etapa criaremos o gerenciamento
-        de cenas, textos, imagens e caminhos.
-      </p>
-
-      <dl class="admin-data">
-        <div>
-          <dt>ADMINISTRADOR</dt>
-          <dd id="admin-name">Carregando...</dd>
-        </div>
-
-        <div>
-          <dt>E-MAIL</dt>
-          <dd id="admin-email">Carregando...</dd>
-        </div>
-
-        <div>
-          <dt>ESTADO</dt>
-          <dd>AUTORIZADO</dd>
-        </div>
-      </dl>
     </section>
 
-    <section class="future-sections">
-      <article>
-        <span>01</span>
-        <h3>Cenas</h3>
-        <p>
-          Criar e editar os acontecimentos da história.
-        </p>
-      </article>
 
-      <article>
-        <span>02</span>
-        <h3>Caminhos</h3>
-        <p>
-          Cadastrar respostas, sinônimos e destinos.
-        </p>
-      </article>
+    <!-- ===================================================
+         NAVEGAÇÃO
+         =================================================== -->
 
-      <article>
-        <span>03</span>
-        <h3>Rotas</h3>
-        <p>
-          Configurar cores e histórias secretas.
-        </p>
-      </article>
+    <nav class="admin-navigation" aria-label="Seções do painel">
+      <button
+        class="admin-navigation__item is-active"
+        type="button"
+        data-section="scenes"
+      >
+        CENAS
+      </button>
 
-      <article>
-        <span>04</span>
-        <h3>Mapa</h3>
-        <p>
-          Posicionar locais e configurar viagens.
-        </p>
-      </article>
+      <button
+        class="admin-navigation__item"
+        type="button"
+        data-section="routes"
+        disabled
+      >
+        ROTAS
+        <span>EM BREVE</span>
+      </button>
+
+      <button
+        class="admin-navigation__item"
+        type="button"
+        data-section="responses"
+        disabled
+      >
+        CAMINHOS
+        <span>EM BREVE</span>
+      </button>
+
+      <button
+        class="admin-navigation__item"
+        type="button"
+        data-section="map"
+        disabled
+      >
+        MAPA
+        <span>EM BREVE</span>
+      </button>
+
+      <button
+        class="admin-navigation__item"
+        type="button"
+        data-section="secrets"
+        disabled
+      >
+        SEGREDOS
+        <span>EM BREVE</span>
+      </button>
+    </nav>
+
+
+    <!-- ===================================================
+         CONTEÚDO: CENAS
+         =================================================== -->
+
+    <section id="scenes-section" class="admin-section">
+      <div class="section-heading">
+        <div>
+          <p class="section-heading__eyebrow">
+            CONSTRUÇÃO NARRATIVA
+          </p>
+
+          <h2>Cenas</h2>
+
+          <p>
+            Crie e organize os acontecimentos que formam
+            os caminhos da história.
+          </p>
+        </div>
+
+        <button
+          id="new-scene-button"
+          class="button button--primary"
+          type="button"
+        >
+          + NOVA CENA
+        </button>
+      </div>
+
+
+      <!-- =================================================
+           RESUMO
+           ================================================= -->
+
+      <div class="scene-statistics">
+        <article>
+          <span>TOTAL</span>
+          <strong id="total-scenes">0</strong>
+        </article>
+
+        <article>
+          <span>ATIVAS</span>
+          <strong id="active-scenes">0</strong>
+        </article>
+
+        <article>
+          <span>DESATIVADAS</span>
+          <strong id="inactive-scenes">0</strong>
+        </article>
+
+        <article>
+          <span>FINAIS</span>
+          <strong id="ending-scenes">0</strong>
+        </article>
+      </div>
+
+
+      <!-- =================================================
+           FILTROS
+           ================================================= -->
+
+      <section class="scene-filters">
+        <div class="field field--search">
+          <label for="scene-search">
+            PESQUISAR
+          </label>
+
+          <input
+            id="scene-search"
+            type="search"
+            placeholder="Título, identificador ou descrição..."
+            autocomplete="off"
+          >
+        </div>
+
+        <div class="field">
+          <label for="route-filter">
+            ROTA
+          </label>
+
+          <select id="route-filter">
+            <option value="">
+              Todas as rotas
+            </option>
+
+            <option value="none">
+              Sem rota específica
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="status-filter">
+            ESTADO
+          </label>
+
+          <select id="status-filter">
+            <option value="">
+              Todos
+            </option>
+
+            <option value="active">
+              Ativas
+            </option>
+
+            <option value="inactive">
+              Desativadas
+            </option>
+
+            <option value="ending">
+              Finais
+            </option>
+          </select>
+        </div>
+      </section>
+
+
+      <!-- =================================================
+           MENSAGEM DA LISTA
+           ================================================= -->
+
+      <p
+        id="scene-list-message"
+        class="scene-list-message"
+        aria-live="polite"
+      ></p>
+
+
+      <!-- =================================================
+           LISTA
+           ================================================= -->
+
+      <div id="scene-list" class="scene-list">
+        <!-- Criada pelo JavaScript. -->
+      </div>
     </section>
   </main>
+
+
+  <!-- =====================================================
+       MODAL DE CENA
+       ===================================================== -->
+
+  <div
+    id="scene-modal"
+    class="modal is-hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="scene-modal-title"
+  >
+    <div class="modal__backdrop" data-close-scene-modal></div>
+
+    <section class="modal__panel modal__panel--large">
+      <header class="modal__header">
+        <div>
+          <p class="modal__eyebrow">
+            EDITOR NARRATIVO
+          </p>
+
+          <h2 id="scene-modal-title">
+            Nova cena
+          </h2>
+        </div>
+
+        <button
+          class="modal__close"
+          type="button"
+          data-close-scene-modal
+          aria-label="Fechar formulário"
+        >
+          ×
+        </button>
+      </header>
+
+
+      <!-- =================================================
+           FORMULÁRIO
+           ================================================= -->
+
+      <form id="scene-form" class="scene-form">
+        <input
+          id="scene-id"
+          type="hidden"
+        >
+
+
+        <!-- ===============================================
+             IDENTIFICAÇÃO
+             =============================================== -->
+
+        <fieldset class="form-group">
+          <legend>Identificação</legend>
+
+          <div class="form-grid form-grid--two">
+            <div class="field">
+              <label for="scene-title">
+                TÍTULO VISÍVEL
+              </label>
+
+              <input
+                id="scene-title"
+                type="text"
+                maxlength="150"
+                placeholder="Ex.: A Porta Vermelha"
+              >
+
+              <small>
+                É o título que aparecerá para o jogador.
+              </small>
+            </div>
+
+            <div class="field">
+              <label for="scene-key">
+                IDENTIFICADOR INTERNO *
+              </label>
+
+              <input
+                id="scene-key"
+                type="text"
+                maxlength="100"
+                required
+                placeholder="porta_vermelha"
+              >
+
+              <small>
+                Use letras minúsculas, números e sublinhados.
+              </small>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="scene-description">
+              DESCRIÇÃO ADMINISTRATIVA
+            </label>
+
+            <textarea
+              id="scene-description"
+              rows="3"
+              maxlength="1000"
+              placeholder="Explique para que esta cena serve..."
+            ></textarea>
+
+            <small>
+              Este texto não aparece para os jogadores.
+            </small>
+          </div>
+        </fieldset>
+
+
+        <!-- ===============================================
+             ROTA E FUNCIONAMENTO
+             =============================================== -->
+
+        <fieldset class="form-group">
+          <legend>Rota e funcionamento</legend>
+
+          <div class="form-grid form-grid--two">
+            <div class="field">
+              <label for="scene-route">
+                ROTA
+              </label>
+
+              <select id="scene-route">
+                <option value="">
+                  Todas as rotas / Sem rota específica
+                </option>
+              </select>
+
+              <small>
+                Uma cena sem rota pode ser utilizada por
+                qualquer caminho.
+              </small>
+            </div>
+
+            <div class="field">
+              <label for="scene-fallback">
+                RESPOSTA NÃO RECONHECIDA
+              </label>
+
+              <input
+                id="scene-fallback"
+                type="text"
+                maxlength="500"
+                placeholder="Não parece possível fazer isso agora."
+              >
+
+              <small>
+                Se ficar vazio, será usada a resposta geral do jogo.
+              </small>
+            </div>
+          </div>
+        </fieldset>
+
+
+        <!-- ===============================================
+             AJUDA
+             =============================================== -->
+
+        <fieldset class="form-group">
+          <legend>Comando AJUDA</legend>
+
+          <div class="form-grid form-grid--two">
+            <div class="field">
+              <label for="scene-help-mode">
+                COMPORTAMENTO
+              </label>
+
+              <select id="scene-help-mode">
+                <option value="normal">
+                  Normal
+                </option>
+
+                <option value="custom">
+                  Resposta personalizada
+                </option>
+
+                <option value="silent">
+                  Não responde
+                </option>
+
+                <option value="disabled">
+                  Responde como ação inválida
+                </option>
+              </select>
+            </div>
+
+            <div
+              id="help-text-field"
+              class="field"
+            >
+              <label for="scene-help-text">
+                TEXTO DA AJUDA
+              </label>
+
+              <input
+                id="scene-help-text"
+                type="text"
+                maxlength="500"
+                placeholder="Digite ações simples..."
+              >
+            </div>
+          </div>
+
+          <div class="help-mode-explanation">
+            <p data-help-explanation="normal">
+              <strong>Normal:</strong>
+              mostra uma orientação geral ou o texto cadastrado.
+            </p>
+
+            <p
+              class="is-hidden"
+              data-help-explanation="custom"
+            >
+              <strong>Personalizada:</strong>
+              mostra exatamente o texto cadastrado.
+            </p>
+
+            <p
+              class="is-hidden"
+              data-help-explanation="silent"
+            >
+              <strong>Não responde:</strong>
+              nada acontece quando o jogador digita AJUDA.
+            </p>
+
+            <p
+              class="is-hidden"
+              data-help-explanation="disabled"
+            >
+              <strong>Desativada:</strong>
+              o jogo apresenta a resposta de ação inválida.
+            </p>
+          </div>
+        </fieldset>
+
+
+        <!-- ===============================================
+             COMANDOS DISPONÍVEIS
+             =============================================== -->
+
+        <fieldset class="form-group">
+          <legend>Comandos disponíveis</legend>
+
+          <div class="toggle-grid">
+            <label class="toggle-option">
+              <input
+                id="allow-repeat"
+                type="checkbox"
+                checked
+              >
+
+              <span class="toggle-option__control"></span>
+
+              <span>
+                <strong>REPETIR</strong>
+                <small>Permite mostrar novamente a cena.</small>
+              </span>
+            </label>
+
+            <label class="toggle-option">
+              <input
+                id="allow-inventory"
+                type="checkbox"
+                checked
+              >
+
+              <span class="toggle-option__control"></span>
+
+              <span>
+                <strong>INVENTÁRIO</strong>
+                <small>Permite consultar os itens.</small>
+              </span>
+            </label>
+
+            <label class="toggle-option">
+              <input
+                id="allow-history"
+                type="checkbox"
+                checked
+              >
+
+              <span class="toggle-option__control"></span>
+
+              <span>
+                <strong>HISTÓRICO</strong>
+                <small>Permite consultar as ações anteriores.</small>
+              </span>
+            </label>
+
+            <label class="toggle-option">
+              <input
+                id="allow-map"
+                type="checkbox"
+              >
+
+              <span class="toggle-option__control"></span>
+
+              <span>
+                <strong>MAPA</strong>
+                <small>Permite abrir o mapa nesta cena.</small>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+
+
+        <!-- ===============================================
+             FINAL E PUBLICAÇÃO
+             =============================================== -->
+
+        <fieldset class="form-group">
+          <legend>Estado da cena</legend>
+
+          <div class="toggle-grid">
+            <label class="toggle-option">
+              <input
+                id="scene-enabled"
+                type="checkbox"
+                checked
+              >
+
+              <span class="toggle-option__control"></span>
+
+              <span>
+                <strong>CENA ATIVA</strong>
+                <small>
+                  Cenas desativadas não ficam disponíveis no jogo.
+                </small>
+              </span>
+            </label>
+
+            <label class="toggle-option">
+              <input
+                id="scene-ending"
+                type="checkbox"
+              >
+
+              <span class="toggle-option__control"></span>
+
+              <span>
+                <strong>CENA FINAL</strong>
+                <small>
+                  Marca a cena como um encerramento.
+                </small>
+              </span>
+            </label>
+          </div>
+
+          <div
+            id="ending-type-field"
+            class="field ending-type-field is-hidden"
+          >
+            <label for="scene-ending-type">
+              TIPO DE FINAL
+            </label>
+
+            <select id="scene-ending-type">
+              <option value="neutral">
+                Neutro
+              </option>
+
+              <option value="victory">
+                Vitória
+              </option>
+
+              <option value="defeat">
+                Derrota
+              </option>
+
+              <option value="secret">
+                Secreto
+              </option>
+            </select>
+          </div>
+        </fieldset>
+
+
+        <!-- ===============================================
+             MENSAGEM
+             =============================================== -->
+
+        <p
+          id="scene-form-message"
+          class="form-message"
+          aria-live="polite"
+        ></p>
+
+
+        <!-- ===============================================
+             AÇÕES
+             =============================================== -->
+
+        <footer class="form-actions">
+          <button
+            class="button button--secondary"
+            type="button"
+            data-close-scene-modal
+          >
+            CANCELAR
+          </button>
+
+          <button
+            id="save-scene-button"
+            class="button button--primary"
+            type="submit"
+          >
+            SALVAR CENA
+          </button>
+        </footer>
+      </form>
+    </section>
+  </div>
+
+
+  <!-- =====================================================
+       MENU DE AÇÕES DA CENA
+       ===================================================== -->
+
+  <div
+    id="scene-actions-modal"
+    class="modal is-hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="scene-actions-title"
+  >
+    <div
+      class="modal__backdrop"
+      data-close-actions-modal
+    ></div>
+
+    <section class="modal__panel modal__panel--small">
+      <header class="modal__header">
+        <div>
+          <p class="modal__eyebrow">
+            AÇÕES DA CENA
+          </p>
+
+          <h2 id="scene-actions-title">
+            Cena
+          </h2>
+        </div>
+
+        <button
+          class="modal__close"
+          type="button"
+          data-close-actions-modal
+          aria-label="Fechar"
+        >
+          ×
+        </button>
+      </header>
+
+      <div class="scene-actions">
+        <button
+          id="duplicate-scene-button"
+          type="button"
+        >
+          <strong>DUPLICAR CENA</strong>
+
+          <span>
+            Cria uma nova cena usando estas configurações.
+          </span>
+        </button>
+
+        <button
+          id="toggle-scene-button"
+          type="button"
+        >
+          <strong>DESATIVAR CENA</strong>
+
+          <span>
+            Impede temporariamente o uso no jogo.
+          </span>
+        </button>
+      </div>
+    </section>
+  </div>
+
+
+  <!-- =====================================================
+       TEMPLATES
+       ===================================================== -->
+
+  <template id="scene-card-template">
+    <article class="scene-card">
+      <div class="scene-card__main">
+        <div class="scene-card__status-column">
+          <span class="scene-card__status"></span>
+        </div>
+
+        <div class="scene-card__content">
+          <div class="scene-card__heading">
+            <div>
+              <h3 class="scene-card__title"></h3>
+
+              <p class="scene-card__identifier"></p>
+            </div>
+
+            <span class="scene-card__route"></span>
+          </div>
+
+          <p class="scene-card__description"></p>
+
+          <div class="scene-card__metadata">
+            <span data-scene-meta="help"></span>
+            <span data-scene-meta="commands"></span>
+            <span data-scene-meta="ending"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="scene-card__actions">
+        <button
+          class="button button--secondary"
+          type="button"
+          data-action="edit"
+        >
+          EDITAR
+        </button>
+
+        <button
+          class="button button--icon"
+          type="button"
+          data-action="more"
+          aria-label="Mais ações"
+        >
+          •••
+        </button>
+      </div>
+    </article>
+  </template>
+
+
+  <!-- =====================================================
+       SCRIPTS
+       ===================================================== -->
 
   <script
     src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
