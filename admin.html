@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="robots"
+    content="noindex, nofollow"
+  >
+
+  <title>Painel Narrativo</title>
+
+  <link rel="stylesheet" href="admin.css">
+</head>
+
+<body>
+  <div id="admin-loading" class="admin-loading">
+    VERIFICANDO AUTORIZAÇÃO...
+  </div>
+
+  <main
+    id="admin-application"
+    class="admin-application is-hidden"
+  >
+    <header class="admin-header">
+      <div>
+        <p class="admin-header__eyebrow">
+          ARQUIVO ARTIST VALLEY
+        </p>
+
+        <h1>Painel Narrativo</h1>
+      </div>
+
+      <div class="admin-header__actions">
+        <a href="index.html">
+          ABRIR JOGO
+        </a>
+
+        <button
+          id="logout-button"
+          type="button"
+        >
+          SAIR
+        </button>
+      </div>
+    </header>
+
+    <section class="admin-welcome">
+      <p class="admin-welcome__status">
+        ACESSO ADMINISTRATIVO CONFIRMADO
+      </p>
+
+      <h2>
+        O painel está conectado.
+      </h2>
+
+      <p>
+        Na próxima etapa criaremos o gerenciamento
+        de cenas, textos, imagens e caminhos.
+      </p>
+
+      <dl class="admin-data">
+        <div>
+          <dt>ADMINISTRADOR</dt>
+          <dd id="admin-name">Carregando...</dd>
+        </div>
+
+        <div>
+          <dt>E-MAIL</dt>
+          <dd id="admin-email">Carregando...</dd>
+        </div>
+
+        <div>
+          <dt>ESTADO</dt>
+          <dd>AUTORIZADO</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="future-sections">
+      <article>
+        <span>01</span>
+        <h3>Cenas</h3>
+        <p>
+          Criar e editar os acontecimentos da história.
+        </p>
+      </article>
+
+      <article>
+        <span>02</span>
+        <h3>Caminhos</h3>
+        <p>
+          Cadastrar respostas, sinônimos e destinos.
+        </p>
+      </article>
+
+      <article>
+        <span>03</span>
+        <h3>Rotas</h3>
+        <p>
+          Configurar cores e histórias secretas.
+        </p>
+      </article>
+
+      <article>
+        <span>04</span>
+        <h3>Mapa</h3>
+        <p>
+          Posicionar locais e configurar viagens.
+        </p>
+      </article>
+    </section>
+  </main>
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  ></script>
+
+  <script src="config.js"></script>
+
+  <script src="admin.js"></script>
+</body>
+</html>
