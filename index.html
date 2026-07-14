@@ -13,75 +13,187 @@
     content="Adventure Text — experiência narrativa interativa"
   >
 
-  <title>Adventure Text</title>
+  <title>Arquivo Artist Valley</title>
 
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-  <main class="terminal">
-    <section class="terminal__screen">
-      <div class="terminal__status" aria-hidden="true">
-        <span id="status-light" class="status-light"></span>
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-screen__content">
+      <span class="loading-screen__light"></span>
 
-        <span id="connection-label">
-          INICIANDO SISTEMA
-        </span>
+      <p id="loading-message">
+        INICIALIZANDO ARQUIVO...
+      </p>
+    </div>
+  </div>
+
+  <main id="application" class="application is-hidden">
+    <header class="topbar">
+      <div class="topbar__identity">
+        <span id="connection-light" class="connection-light"></span>
+
+        <div>
+          <p class="topbar__label">
+            IDENTIFICAÇÃO
+          </p>
+
+          <p id="player-code" class="topbar__value">
+            DESCONHECIDA
+          </p>
+        </div>
       </div>
 
-      <p class="terminal__label">
-        ARQUIVO NARRATIVO
-      </p>
-
-      <h1>ADVENTURE TEXT</h1>
-
-      <p class="terminal__message">
-        Estabelecendo conexão com o arquivo central.
-      </p>
-
-      <p class="terminal__message">
-        Aguarde enquanto sua identidade é verificada.
-      </p>
-
-      <div class="terminal__divider"></div>
-
-      <div class="player-data">
-        <p class="player-data__label">
-          IDENTIFICAÇÃO LOCAL
+      <div class="topbar__route">
+        <p class="topbar__label">
+          ROTA
         </p>
 
-        <p id="player-code" class="player-data__value">
-          GERANDO...
+        <p id="route-name" class="topbar__value">
+          NÃO DEFINIDA
         </p>
       </div>
+    </header>
 
-      <p
-        id="system-status"
-        class="terminal__system-status"
+    <section class="terminal">
+      <div class="terminal__scanlines" aria-hidden="true"></div>
+
+      <div class="terminal__header">
+        <p id="game-title" class="terminal__archive">
+          ARQUIVO ARTIST VALLEY
+        </p>
+
+        <button
+          id="menu-button"
+          class="terminal__menu-button"
+          type="button"
+          aria-label="Abrir comandos"
+        >
+          COMANDOS
+        </button>
+      </div>
+
+      <article id="scene-container" class="scene-container">
+        <p class="system-line">
+          Aguardando conteúdo...
+        </p>
+      </article>
+
+      <div
+        id="system-message"
+        class="system-message"
         aria-live="polite"
-      >
-        Conectando ao Supabase...
-      </p>
+      ></div>
 
-      <button
-        id="test-button"
-        type="button"
-        disabled
-      >
-        TESTAR SALVAMENTO
-      </button>
+      <form id="command-form" class="command-form">
+        <label class="command-form__label" for="command-input">
+          O QUE VOCÊ FAZ?
+        </label>
+
+        <div class="command-form__row">
+          <span class="command-form__prompt" aria-hidden="true">
+            &gt;
+          </span>
+
+          <input
+            id="command-input"
+            class="command-form__input"
+            type="text"
+            name="command"
+            maxlength="300"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="DIGITE UMA AÇÃO..."
+          >
+
+          <button
+            id="send-button"
+            class="command-form__send"
+            type="submit"
+          >
+            ENVIAR
+          </button>
+        </div>
+      </form>
     </section>
   </main>
 
-  <!-- Biblioteca oficial supabase-js pela CDN. -->
+  <div
+    id="command-modal"
+    class="modal is-hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="command-modal-title"
+  >
+    <div class="modal__backdrop" data-close-modal></div>
+
+    <section class="modal__panel">
+      <div class="modal__header">
+        <div>
+          <p class="modal__eyebrow">
+            TERMINAL DE CONSULTA
+          </p>
+
+          <h2 id="command-modal-title">
+            Comandos
+          </h2>
+        </div>
+
+        <button
+          class="modal__close"
+          type="button"
+          data-close-modal
+          aria-label="Fechar"
+        >
+          ×
+        </button>
+      </div>
+
+      <div class="command-list">
+        <button type="button" data-command="ajuda">
+          <strong>AJUDA</strong>
+          <span>Consulta orientações da cena.</span>
+        </button>
+
+        <button type="button" data-command="repetir">
+          <strong>REPETIR</strong>
+          <span>Mostra novamente o conteúdo atual.</span>
+        </button>
+
+        <button type="button" data-command="inventario">
+          <strong>INVENTÁRIO</strong>
+          <span>Consulta os objetos da partida.</span>
+        </button>
+
+        <button type="button" data-command="historico">
+          <strong>HISTÓRICO</strong>
+          <span>Mostra os acontecimentos recentes.</span>
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <template id="text-block-template">
+    <p class="scene-block scene-block--text"></p>
+  </template>
+
+  <template id="image-block-template">
+    <figure class="scene-block scene-block--image">
+      <img src="" alt="">
+    </figure>
+  </template>
+
+  <template id="ascii-block-template">
+    <pre class="scene-block scene-block--ascii"></pre>
+  </template>
+
   <script
     src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
   ></script>
 
-  <!-- Configuração do projeto. -->
   <script src="config.js"></script>
 
-  <!-- Funcionamento da página. -->
   <script src="app.js"></script>
 </body>
 </html>
