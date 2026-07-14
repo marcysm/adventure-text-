@@ -924,3 +924,80 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+/* ==========================================================
+   ATIVAÇÃO DE ROTA SECRETA
+   ========================================================== */
+
+body.secret-route-activated {
+  animation:
+    secret-screen-collapse 1.25s steps(3, end);
+}
+
+body.secret-route-activated .terminal {
+  animation:
+    secret-terminal-failure 1.25s steps(2, end);
+}
+
+@keyframes secret-screen-collapse {
+  0% {
+    filter:
+      brightness(1)
+      contrast(1);
+  }
+
+  15% {
+    filter:
+      brightness(3)
+      contrast(2);
+  }
+
+  28% {
+    filter:
+      brightness(0)
+      contrast(4);
+  }
+
+  42% {
+    filter:
+      brightness(1.7)
+      contrast(3);
+  }
+
+  58% {
+    filter:
+      brightness(0.1)
+      contrast(5);
+  }
+
+  100% {
+    filter:
+      brightness(1)
+      contrast(1);
+  }
+}
+
+@keyframes secret-terminal-failure {
+  0% {
+    transform: translate(0);
+  }
+
+  18% {
+    transform: translate(-7px, 2px);
+  }
+
+  32% {
+    transform: translate(8px, -3px);
+  }
+
+  46% {
+    transform: translate(-4px, 4px);
+  }
+
+  64% {
+    transform: translate(5px, -2px);
+  }
+
+  100% {
+    transform: translate(0);
+  }
+}
