@@ -2264,10 +2264,7 @@ function renderBlocksList() {
   );
 }
 
-function createBlockCard(
-  block,
-  index
-) {
+function createBlockCard(block, index) {
   const fragment =
     elements.blockCardTemplate.content
       .cloneNode(true);
@@ -2302,10 +2299,22 @@ function createBlockCard(
       ".block-card__preview"
     );
 
+  /*
+    Aceita tanto data-block-action
+    quanto data-action.
+  */
   const buttons =
     fragment.querySelectorAll(
-      "[data-block-action]"
+      "[data-block-action], [data-action]"
     );
+
+  if (!card) {
+    console.error(
+      "O template de blocos não possui .block-card."
+    );
+
+    return fragment;
+  }
 
   card.dataset.blockId = block.id;
 
@@ -2314,55 +2323,201 @@ function createBlockCard(
     !block.is_enabled
   );
 
-  position.textContent =
-    String(index + 1).padStart(
-      2,
-      "0"
-    );
+  if (position) {
+    position.textContent =
+      String(index + 1).padStart(
+        2,
+        "0"
+      );
+  }
 
-  type.textContent =
-    formatBlockType(
-      block.block_type
-    );
+  if (type) {
+    type.textContent =
+      formatBlockType(
+        block.block_type
+      );
+  }
 
-  animation.textContent =
-    formatBlockAnimation(
-      block.animation_type
-    );
+  if (animation) {
+    animation.textContent =
+      formatBlockAnimation(
+        block.animation_type
+      );
+  }
 
-  status.textContent =
-    block.is_enabled
-      ? "ATIVO"
-      : "DESATIVADO";
+  if (status) {
+    status.textContent =
+      block.is_enabled
+        ? "ATIVO"
+        : "DESATIVADO";
+  }
 
   buttons.forEach(button => {
+    /*
+      Descobre qual dos dois atributos
+      está sendo utilizado no HTML.
+    */
+    const action =
+      button.dataset.blockAction ||
+      button.dataset.action;
+
+    if (!action) {
+      return;
+    }
+
+    /*
+      Padroniza o atributo para o restante
+      do JavaScript.
+    */
+    button.dataset.blockAction =
+      action;
+
     button.dataset.blockId =
       block.id;
 
+    /*
+      Impede que botões dentro de formulários
+      tentem enviar o formulário.
+    */
     if (
-      button.dataset.blockAction ===
-      "up"
+      button.tagName === "BUTTON" &&
+      !button.getAttribute("type")
     ) {
+      button.type = "button";
+    }
+
+    if (action === "up") {
       button.disabled =
         index === 0;
     }
 
-    if (
-      button.dataset.blockAction ===
-      "down"
-    ) {
+    if (action === "down") {
       button.disabled =
         index ===
         state.blocks.length - 1;
     }
+
+    /*
+      Evento direto no botão.
+    */
+button.dataset.directBlockEvent =
+  "true";
+     
+    button.addEventListener(
+      "click",
+      async event => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        await executeBlockAction(
+          action,
+          block.id,
+          button
+        );
+      }
+    );
   });
 
-  renderBlockCardPreview(
-    preview,
-    block
-  );
+  if (preview) {
+    renderBlockCardPreview(
+      preview,
+      block
+    );
+  }
 
   return fragment;
+}
+
+async function executeBlockAction(
+  action,
+  blockId,
+  button = null
+) {
+  if (!blockId) {
+    console.error(
+      "Ação de bloco sem blockId:",
+      action
+    );
+
+    return;
+  }
+
+  /*
+    Editar não precisa bloquear o botão,
+    pois apenas abre o formulário.
+  */
+  if (
+    button &&
+    action !== "edit"
+  ) {
+    button.disabled = true;
+  }
+
+  try {
+    switch (action) {
+      case "up":
+        await moveBlock(
+          blockId,
+          "up"
+        );
+        break;
+
+      case "down":
+        await moveBlock(
+          blockId,
+          "down"
+        );
+        break;
+
+      case "edit":
+        openEditBlockModal(
+          blockId
+        );
+        break;
+
+      case "duplicate":
+        await duplicateBlock(
+          blockId
+        );
+        break;
+
+      case "toggle":
+        await toggleBlock(
+          blockId
+        );
+        break;
+
+      case "delete":
+        await deleteBlock(
+          blockId
+        );
+        break;
+
+      default:
+        console.warn(
+          "Ação de bloco desconhecida:",
+          action
+        );
+    }
+  } catch (error) {
+    console.error(
+      `Erro ao executar ação "${action}":`,
+      error
+    );
+
+    showBlocksMessage(
+      formatDatabaseError(error),
+      "error"
+    );
+  } finally {
+    if (
+      button &&
+      button.isConnected &&
+      action !== "edit"
+    ) {
+      button.disabled = false;
+    }
+  }
 }
 
 function formatBlockType(blockType) {
@@ -2536,83 +2691,58 @@ function showBlocksMessage(
    CLIQUES NOS BLOCOS
    ========================================================== */
 
-async function handleBlocksListClick(
-  event
-) {
+async function handleBlocksListClick(event) {
   const button = event.target.closest(
-    "[data-block-action]"
+    "[data-block-action], [data-action]"
   );
 
-  if (!button || button.disabled) {
+  if (!button) {
     return;
   }
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const action =
+    button.dataset.blockAction ||
+    button.dataset.action;
 
   const blockId =
-    button.dataset.blockId;
+    button.dataset.blockId ||
+    button.closest(
+      ".block-card"
+    )?.dataset.blockId;
 
-  if (!blockId) {
+  if (!action || !blockId) {
+    console.error(
+      "Botão de bloco incompleto:",
+      {
+        action,
+        blockId,
+        button
+      }
+    );
+
     return;
   }
 
-  button.disabled = true;
-
-  try {
-    switch (
-      button.dataset.blockAction
-    ) {
-      case "up":
-        await moveBlock(
-          blockId,
-          "up"
-        );
-        break;
-
-      case "down":
-        await moveBlock(
-          blockId,
-          "down"
-        );
-        break;
-
-      case "edit":
-        openEditBlockModal(
-          blockId
-        );
-        break;
-
-      case "duplicate":
-        await duplicateBlock(
-          blockId
-        );
-        break;
-
-      case "toggle":
-        await toggleBlock(
-          blockId
-        );
-        break;
-
-      case "delete":
-        await deleteBlock(
-          blockId
-        );
-        break;
-    }
-  } catch (error) {
-    console.error(
-      "Erro na ação do bloco:",
-      error
-    );
-
-    showBlocksMessage(
-      formatDatabaseError(error),
-      "error"
-    );
-  } finally {
-    if (button.isConnected) {
-      button.disabled = false;
-    }
+  /*
+    Caso o botão já tenha recebido o evento
+    direto em createBlockCard, não executamos
+    novamente pela lista.
+  */
+  if (
+    button.dataset.directBlockEvent ===
+    "true"
+  ) {
+    return;
   }
+
+  await executeBlockAction(
+    action,
+    blockId,
+    button
+  );
 }
 
 
