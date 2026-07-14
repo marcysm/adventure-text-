@@ -993,26 +993,85 @@
           </small>
         </div>
 
-        <div
-          id="block-media-field"
-          class="field is-hidden"
-        >
-          <label for="block-media-url">
-            ENDEREÇO DA MÍDIA
-          </label>
+       <div
+  id="block-media-field"
+  class="field is-hidden"
+>
+  <label for="block-media-url">
+    MÍDIA
+  </label>
 
-          <input
-            id="block-media-url"
-            type="url"
-            maxlength="2000"
-            placeholder="https://..."
-          >
+  <div class="media-source-actions">
+    <button
+      id="upload-media-button"
+      class="button button--secondary"
+      type="button"
+    >
+      ENVIAR ARQUIVO
+    </button>
 
-          <small>
-            Nesta etapa usamos o endereço da imagem ou do áudio.
-            O envio direto de arquivos será criado depois.
-          </small>
-        </div>
+    <button
+      id="open-media-library-button"
+      class="button button--secondary"
+      type="button"
+    >
+      ABRIR BIBLIOTECA
+    </button>
+  </div>
+
+  <input
+    id="media-file-input"
+    type="file"
+    hidden
+    accept="
+      image/png,
+      image/jpeg,
+      image/webp,
+      image/gif,
+      audio/mpeg,
+      audio/ogg,
+      audio/wav,
+      audio/mp4
+    "
+  >
+
+  <div
+    id="media-upload-status"
+    class="media-upload-status is-hidden"
+  >
+    <div class="media-upload-status__heading">
+      <span id="media-upload-name">
+        Preparando arquivo...
+      </span>
+
+      <strong id="media-upload-percentage">
+        0%
+      </strong>
+    </div>
+
+    <div class="media-upload-status__track">
+      <span id="media-upload-progress"></span>
+    </div>
+
+    <p id="media-upload-message"></p>
+  </div>
+
+  <label for="block-media-url">
+    ENDEREÇO DO ARQUIVO
+  </label>
+
+  <input
+    id="block-media-url"
+    type="url"
+    maxlength="2000"
+    placeholder="https://..."
+  >
+
+  <small>
+    O endereço será preenchido automaticamente após
+    o envio ou a seleção na biblioteca.
+  </small>
+</div>
 
         <div
           id="block-alt-field"
@@ -1229,6 +1288,165 @@
   </article>
 </template>
 
+  <!-- =====================================================
+     BIBLIOTECA DE MÍDIAS
+     ===================================================== -->
+
+<div
+  id="media-library-modal"
+  class="modal is-hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="media-library-title"
+>
+  <div
+    class="modal__backdrop"
+    data-close-media-library
+  ></div>
+
+  <section class="modal__panel modal__panel--media">
+    <header class="modal__header">
+      <div>
+        <p class="modal__eyebrow">
+          SUPABASE STORAGE
+        </p>
+
+        <h2 id="media-library-title">
+          Biblioteca de mídias
+        </h2>
+
+        <p class="modal__subtitle">
+          Escolha um arquivo já enviado ou envie um novo.
+        </p>
+      </div>
+
+      <button
+        class="modal__close"
+        type="button"
+        data-close-media-library
+        aria-label="Fechar biblioteca"
+      >
+        ×
+      </button>
+    </header>
+
+    <div class="media-library-toolbar">
+      <div class="field media-library-toolbar__search">
+        <label for="media-library-search">
+          PESQUISAR
+        </label>
+
+        <input
+          id="media-library-search"
+          type="search"
+          placeholder="Nome do arquivo..."
+          autocomplete="off"
+        >
+      </div>
+
+      <div class="field">
+        <label for="media-library-type">
+          TIPO
+        </label>
+
+        <select id="media-library-type">
+          <option value="">
+            Todos
+          </option>
+
+          <option value="image">
+            Imagens
+          </option>
+
+          <option value="pixel_art">
+            Pixel arts
+          </option>
+
+          <option value="gif">
+            GIFs
+          </option>
+
+          <option value="audio">
+            Áudios
+          </option>
+        </select>
+      </div>
+
+      <button
+        id="media-library-upload-button"
+        class="button button--primary"
+        type="button"
+      >
+        + ENVIAR ARQUIVO
+      </button>
+    </div>
+
+    <div class="media-library-summary">
+      <span id="media-library-count">
+        0 arquivos
+      </span>
+
+      <p
+        id="media-library-message"
+        aria-live="polite"
+      ></p>
+    </div>
+
+    <div
+      id="media-library-list"
+      class="media-library-list"
+    ></div>
+  </section>
+</div>
+
+
+<!-- =====================================================
+     TEMPLATE DE MÍDIA
+     ===================================================== -->
+
+<template id="media-card-template">
+  <article class="media-card">
+    <div class="media-card__preview"></div>
+
+    <div class="media-card__content">
+      <span class="media-card__type"></span>
+
+      <h3 class="media-card__name"></h3>
+
+      <p class="media-card__details"></p>
+    </div>
+
+    <div class="media-card__actions">
+      <button
+        class="button button--primary"
+        type="button"
+        data-media-action="select"
+      >
+        USAR
+      </button>
+
+      <button
+        class="button button--icon"
+        type="button"
+        data-media-action="copy"
+        title="Copiar endereço"
+        aria-label="Copiar endereço"
+      >
+        ⧉
+      </button>
+
+      <button
+        class="button button--icon button--danger"
+        type="button"
+        data-media-action="delete"
+        title="Excluir arquivo"
+        aria-label="Excluir arquivo"
+      >
+        ×
+      </button>
+    </div>
+  </article>
+</template>
   
   <!-- =====================================================
        TEMPLATES
