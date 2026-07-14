@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="robots"
+    content="noindex, nofollow"
+  >
+
+  <title>Acesso Restrito</title>
+
+  <link
+    rel="stylesheet"
+    href="admin-login.css"
+  >
+</head>
+
+<body>
+  <main class="access">
+    <section class="access-panel">
+      <div class="access-status">
+        <span class="access-status__light"></span>
+
+        <span>
+          TERMINAL ADMINISTRATIVO
+        </span>
+      </div>
+
+      <p class="access-eyebrow">
+        ARQUIVO ARTIST VALLEY
+      </p>
+
+      <h1>Acesso restrito</h1>
+
+      <p class="access-description">
+        Esta área exige uma identidade administrativa válida.
+      </p>
+
+      <form id="login-form" class="login-form">
+        <label for="email">
+          E-MAIL
+        </label>
+
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autocomplete="username"
+          required
+          placeholder="administrador@exemplo.com"
+        >
+
+        <label for="password">
+          SENHA
+        </label>
+
+        <input
+          id="password"
+          name="password"
+          type="password"
+          autocomplete="current-password"
+          required
+          minlength="6"
+          placeholder="••••••••••••"
+        >
+
+        <p
+          id="login-message"
+          class="login-message"
+          aria-live="polite"
+        ></p>
+
+        <button
+          id="login-button"
+          type="submit"
+        >
+          AUTENTICAR
+        </button>
+      </form>
+
+      <a class="back-link" href="index.html">
+        ← Retornar ao arquivo narrativo
+      </a>
+    </section>
+  </main>
+
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  ></script>
+
+  <script src="config.js"></script>
+
+  <script src="admin-login.js"></script>
+</body>
+</html>
