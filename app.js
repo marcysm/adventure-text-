@@ -1116,6 +1116,28 @@ async function tryExecuteSecretCode(originalInput) {
     return false;
   }
 
+   /*
+  O código administrativo não altera a partida.
+  Ele apenas encaminha para a página protegida de login.
+*/
+if (data.action_type === "open_admin_login") {
+  if (data.message) {
+    showSystemMessage(
+      data.message,
+      "response"
+    );
+
+    await wait(1100);
+  }
+
+  const redirectPath =
+    data.redirect_path || "admin-login.html";
+
+  window.location.href = redirectPath;
+
+  return true;
+}
+   
   if (data.message) {
     showSystemMessage(
       data.message,
