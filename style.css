@@ -271,3 +271,58 @@ button:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+.player-data {
+  position: relative;
+  z-index: 1;
+
+  margin-bottom: 24px;
+}
+
+.player-data__label {
+  margin: 0 0 8px;
+
+  color: var(--muted);
+
+  font-size: 11px;
+  letter-spacing: 0.18em;
+}
+
+.player-data__value {
+  margin: 0;
+
+  color: var(--text);
+
+  font-size: clamp(20px, 4vw, 32px);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+
+  overflow-wrap: anywhere;
+}
+
+.status-light.is-connected {
+  background: #8cff9b;
+
+  box-shadow:
+    0 0 12px #8cff9b,
+    0 0 28px rgba(140, 255, 155, 0.3);
+}
+
+.status-light.is-error {
+  background: var(--danger);
+
+  box-shadow:
+    0 0 12px var(--danger),
+    0 0 28px rgba(255, 66, 66, 0.3);
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.45;
+  transform: none;
+}
+
+button:disabled:hover {
+  color: var(--background);
+  background: var(--accent);
+  transform: none;
+}
