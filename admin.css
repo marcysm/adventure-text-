@@ -1637,3 +1637,23 @@ select:focus-visible {
     flex: 1;
   }
 }
+
+.block-card button,
+.block-card [data-block-action],
+.block-card [data-action] {
+  pointer-events: auto;
+  position: relative;
+  z-index: 5;
+  cursor: pointer;
+}
+
+.block-card button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.block-card__actions {
+  position: relative;
+  z-index: 5;
+  pointer-events: auto;
+}
