@@ -672,8 +672,8 @@ async function loadCurrentScene() {
           is_ending,
           ending_type
         `)
-        .eq("id", state.session.current_scene_id)
-        .single(),
+      .eq("id", state.session.current_scene_id)
+.maybeSingle(),
 
       state.client
         .from("scene_blocks")
@@ -747,6 +747,12 @@ async function loadCurrentScene() {
       throw sceneResult.error;
     }
 
+if (!sceneResult.data) {
+  throw new Error(
+    "A cena atual não existe ou está desativada."
+  );
+}
+     
     if (blocksResult.error) {
       throw blocksResult.error;
     }
