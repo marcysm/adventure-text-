@@ -7726,6 +7726,35 @@ function applyItemFilters() {
       );
     });
 
+   state.filteredItems.sort(
+  (itemA, itemB) => {
+    const orderDifference =
+      (
+        Number(
+          itemA.display_order
+        ) || 0
+      ) -
+      (
+        Number(
+          itemB.display_order
+        ) || 0
+      );
+
+    if (orderDifference !== 0) {
+      return orderDifference;
+    }
+
+    return String(
+      itemA.name || ""
+    ).localeCompare(
+      String(
+        itemB.name || ""
+      ),
+      "pt-BR"
+    );
+  }
+);
+   
   updateItemStatistics();
   renderItemList();
 }
@@ -8195,9 +8224,10 @@ function closeItemModal() {
 
   state.editingItemId = null;
 
+  elements.itemForm.reset();
+
   updateBodyOverflow();
 }
-
 
 function handleItemModalClick(event) {
   const closeTarget =
@@ -8329,8 +8359,11 @@ function renderItemImagePreview() {
 
 
 function handleItemNameInput() {
+  if (state.editingItemId) {
+    return;
+  }
+
   if (
-    state.editingItemId ||
     elements.itemKey.value.trim()
   ) {
     return;
@@ -8391,15 +8424,232 @@ function updateItemQuantityInterface() {
   }
 }
 
+function collectItemFormData() {
+  const isStackable =
+    elements.itemStackable.checked;
+
+  const maximumQuantity =
+    isStackable
+      ? Number(
+          elements.itemMaximumQuantity.value
+        )
+      : 1;
+
+  return {
+    game_id:
+      state.game.id,
+
+    item_key:
+      normalizeItemKey(
+        elements.itemKey.value
+      ),
+
+    name:
+      elements.itemName.value.trim(),
+
+    description:
+      emptyToNull(
+        elements.itemDescription.value
+      ),
+
+    admin_description:
+      emptyToNull(
+        elements.itemAdminDescription.value
+      ),
+
+    item_type:
+      elements.itemType.value ||
+      "general",
+
+    image_url:
+      emptyToNull(
+        elements.itemImageUrl.value
+      ),
+
+    receive_text:
+      emptyToNull(
+        elements.itemReceiveText.value
+      ),
+
+    use_text:
+      emptyToNull(
+        elements.itemUseText.value
+      ),
+
+    maximum_quantity:
+      maximumQuantity,
+
+    is_stackable:
+      isStackable,
+
+    is_consumable:
+      elements.itemConsumable.checked,
+
+    is_secret:
+      elements.itemSecret.checked,
+
+    is_enabled:
+      elements.itemEnabled.checked,
+
+    display_order:
+      Number(
+        elements.itemDisplayOrder.value
+      ) || 0
+  };
+}
+
+function validateItemData(itemData) {
+  if (!itemData.name) {
+    return (
+      "Informe o nome do item."
+    );
+  }
+
+  if (!itemData.item_key) {
+    return (
+      "Informe o identificador interno do item."
+    );
+  }
+
+  if (
+    !/^[a-z0-9_]+$/.test(
+      itemData.item_key
+    )
+  ) {
+    return (
+      "O identificador pode conter apenas letras minúsculas, " +
+      "números e sublinhados."
+    );
+  }
+
+  const validTypes = new Set([
+    "general",
+    "key",
+    "document",
+    "tool",
+    "weapon",
+    "clue",
+    "consumable",
+    "quest",
+    "secret"
+  ]);
+
+  if (
+    !validTypes.has(
+      itemData.item_type
+    )
+  ) {
+    return (
+      "Selecione um tipo de item válido."
+    );
+  }
+
+  if (
+    !Number.isInteger(
+      itemData.maximum_quantity
+    ) ||
+    itemData.maximum_quantity < 1 ||
+    itemData.maximum_quantity > 999
+  ) {
+    return (
+      "A quantidade máxima deve estar entre 1 e 999."
+    );
+  }
+
+  if (
+    !Number.isInteger(
+      itemData.display_order
+    ) ||
+    itemData.display_order < 0 ||
+    itemData.display_order > 10000
+  ) {
+    return (
+      "A ordem do item deve estar entre 0 e 10000."
+    );
+  }
+
+  if (
+    itemData.image_url &&
+    !isValidHttpUrl(
+      itemData.image_url
+    )
+  ) {
+    return (
+      "O endereço da imagem não é válido."
+    );
+  }
+
+  return null;
+}
 
 async function handleItemFormSubmit(event) {
   event.preventDefault();
 
-  elements.itemFormMessage.className =
-    "form-message is-error";
+  if (state.isSavingItem) {
+    return;
+  }
 
-  elements.itemFormMessage.textContent =
-    "O salvamento será ativado na próxima parte da etapa.";
+  const itemData =
+    collectItemFormData();
+
+  const validationError =
+    validateItemData(itemData);
+
+  if (validationError) {
+    showItemFormMessage(
+      validationError,
+      "error"
+    );
+
+    return;
+  }
+
+  setItemSaving(true);
+
+  showItemFormMessage(
+    "SALVANDO ITEM..."
+  );
+
+  try {
+    if (state.editingItemId) {
+      await updateItem(
+        state.editingItemId,
+        itemData
+      );
+    } else {
+      await createItem(itemData);
+    }
+
+    await refreshItems();
+
+    showItemFormMessage(
+      "ITEM SALVO COM SUCESSO.",
+      "success"
+    );
+
+   window.setTimeout(() => {
+  setItemSaving(false);
+  closeItemModal();
+}, 450);
+  } catch (error) {
+    console.error(
+      "Erro ao salvar item:",
+      error
+    );
+
+    showItemFormMessage(
+      formatItemDatabaseError(error),
+      "error"
+    );
+} finally {
+  if (
+    !elements.itemModal.classList.contains(
+      "is-hidden"
+    )
+  ) {
+    setItemSaving(false);
+  }
+}
 }
 
 function setItemSaving(isSaving) {
@@ -8540,17 +8790,201 @@ function getItemById(itemId) {
   ) || null;
 }
 
-function toggleSelectedItem() {
-  /*
-    Será implementado na parte 13D-3.
-  */
+async function duplicateSelectedItem() {
+  const item =
+    getItemById(
+      state.actionsItemId
+    );
+
+  if (!item) {
+    return;
+  }
+
+  elements.duplicateItemButton.disabled =
+    true;
+
+  showItemListMessage(
+    "DUPLICANDO ITEM..."
+  );
+
+  try {
+    const {
+      error
+    } = await state.client.rpc(
+      "duplicate_item",
+      {
+        p_item_id:
+          item.id
+      }
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    closeItemActionsModal();
+
+    await refreshItems();
+
+    showItemListMessage(
+      "ITEM DUPLICADO COM SUCESSO.",
+      "success"
+    );
+  } catch (error) {
+    console.error(
+      "Erro ao duplicar item:",
+      error
+    );
+
+    showItemListMessage(
+      formatItemDatabaseError(error),
+      "error"
+    );
+  } finally {
+    elements.duplicateItemButton.disabled =
+      false;
+  }
+}
+
+async function toggleSelectedItem() {
+  const item =
+    getItemById(
+      state.actionsItemId
+    );
+
+  if (!item) {
+    return;
+  }
+
+  const newEnabledState =
+    !item.is_enabled;
+
+  elements.toggleItemButton.disabled =
+    true;
+
+  showItemListMessage(
+    newEnabledState
+      ? "ATIVANDO ITEM..."
+      : "DESATIVANDO ITEM..."
+  );
+
+  try {
+    const {
+      error
+    } = await state.client
+      .from("items")
+      .update({
+        is_enabled:
+          newEnabledState
+      })
+      .eq(
+        "id",
+        item.id
+      )
+      .eq(
+        "game_id",
+        state.game.id
+      );
+
+    if (error) {
+      throw error;
+    }
+
+    closeItemActionsModal();
+
+    await refreshItems();
+
+    showItemListMessage(
+      newEnabledState
+        ? "ITEM ATIVADO COM SUCESSO."
+        : "ITEM DESATIVADO COM SUCESSO.",
+      "success"
+    );
+  } catch (error) {
+    console.error(
+      "Erro ao alterar item:",
+      error
+    );
+
+    showItemListMessage(
+      formatItemDatabaseError(error),
+      "error"
+    );
+  } finally {
+    elements.toggleItemButton.disabled =
+      false;
+  }
 }
 
 
-function deleteSelectedItem() {
-  /*
-    Será implementado na parte 13D-3.
-  */
+async function deleteSelectedItem() {
+  const item =
+    getItemById(
+      state.actionsItemId
+    );
+
+  if (!item) {
+    return;
+  }
+
+  const confirmation =
+    window.confirm(
+      `Excluir permanentemente o item "${item.name}"?\n\n` +
+      "Esta ação não poderá ser desfeita."
+    );
+
+  if (!confirmation) {
+    return;
+  }
+
+  elements.deleteItemButton.disabled =
+    true;
+
+  showItemListMessage(
+    "EXCLUINDO ITEM..."
+  );
+
+  try {
+    const {
+      error
+    } = await state.client
+      .from("items")
+      .delete()
+      .eq(
+        "id",
+        item.id
+      )
+      .eq(
+        "game_id",
+        state.game.id
+      );
+
+    if (error) {
+      throw error;
+    }
+
+    closeItemActionsModal();
+
+    await refreshItems();
+
+    showItemListMessage(
+      "ITEM EXCLUÍDO COM SUCESSO.",
+      "success"
+    );
+  } catch (error) {
+    console.error(
+      "Erro ao excluir item:",
+      error
+    );
+
+    showItemListMessage(
+      formatItemDatabaseError(error),
+      "error"
+    );
+  } finally {
+    elements.deleteItemButton.disabled =
+      false;
+  }
 }
 
 /* ==========================================================
