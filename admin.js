@@ -1004,6 +1004,19 @@ document.addEventListener("keydown", event => {
   closeSceneModal();
   closeActionsModal();
 });
+
+   /*
+  Conecta os botões da navegação superior
+  às seções correspondentes do painel.
+*/
+elements.navigationItems.forEach(
+  navigationItem => {
+    navigationItem.addEventListener(
+      "click",
+      handleNavigationClick
+    );
+  }
+);
    
   elements.newResponseButton.addEventListener(
     "click",
