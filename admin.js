@@ -22,10 +22,14 @@ const state = {
 
   blocksSceneId: null,
   blocks: [],
-  editingBlockId: null,
+editingBlockId: null,
 
-  isSaving: false,
-  isSavingBlock: false
+mediaLibrary: [],
+filteredMedia: [],
+
+isSaving: false,
+isSavingBlock: false,
+isUploadingMedia: false
 };
 
 const elements = {};
@@ -415,7 +419,86 @@ function cacheElements() {
     document.getElementById(
       "save-block-button"
     );
+  elements.uploadMediaButton =
+    document.getElementById(
+      "upload-media-button"
+    );
 
+  elements.openMediaLibraryButton =
+    document.getElementById(
+      "open-media-library-button"
+    );
+
+  elements.mediaFileInput =
+    document.getElementById(
+      "media-file-input"
+    );
+
+  elements.mediaUploadStatus =
+    document.getElementById(
+      "media-upload-status"
+    );
+
+  elements.mediaUploadName =
+    document.getElementById(
+      "media-upload-name"
+    );
+
+  elements.mediaUploadPercentage =
+    document.getElementById(
+      "media-upload-percentage"
+    );
+
+  elements.mediaUploadProgress =
+    document.getElementById(
+      "media-upload-progress"
+    );
+
+  elements.mediaUploadMessage =
+    document.getElementById(
+      "media-upload-message"
+    );
+
+  elements.mediaLibraryModal =
+    document.getElementById(
+      "media-library-modal"
+    );
+
+  elements.mediaLibrarySearch =
+    document.getElementById(
+      "media-library-search"
+    );
+
+  elements.mediaLibraryType =
+    document.getElementById(
+      "media-library-type"
+    );
+
+  elements.mediaLibraryUploadButton =
+    document.getElementById(
+      "media-library-upload-button"
+    );
+
+  elements.mediaLibraryCount =
+    document.getElementById(
+      "media-library-count"
+    );
+
+  elements.mediaLibraryMessage =
+    document.getElementById(
+      "media-library-message"
+    );
+
+  elements.mediaLibraryList =
+    document.getElementById(
+      "media-library-list"
+    );
+
+  elements.mediaCardTemplate =
+    document.getElementById(
+      "media-card-template"
+    );
+   
   const missing = Object.entries(elements)
     .filter(([, element]) => !element)
     .map(([name]) => name);
@@ -566,6 +649,46 @@ function configureEvents() {
   document.addEventListener(
     "keydown",
     handleEscapeKey
+  );
+
+     elements.uploadMediaButton.addEventListener(
+    "click",
+    openMediaFileSelector
+  );
+
+  elements.mediaLibraryUploadButton.addEventListener(
+    "click",
+    openMediaFileSelector
+  );
+
+  elements.openMediaLibraryButton.addEventListener(
+    "click",
+    openMediaLibrary
+  );
+
+  elements.mediaFileInput.addEventListener(
+    "change",
+    handleMediaFileSelected
+  );
+
+  elements.mediaLibraryModal.addEventListener(
+    "click",
+    handleMediaLibraryModalClick
+  );
+
+  elements.mediaLibrarySearch.addEventListener(
+    "input",
+    applyMediaLibraryFilters
+  );
+
+  elements.mediaLibraryType.addEventListener(
+    "change",
+    applyMediaLibraryFilters
+  );
+
+  elements.mediaLibraryList.addEventListener(
+    "click",
+    handleMediaLibraryListClick
   );
 }
 
@@ -3839,6 +3962,994 @@ function formatDatabaseError(error) {
     return (
       "Um dos valores informados não é aceito pelo banco de dados."
     );
+  }
+
+  return message;
+}
+
+/* ==========================================================
+   CONFIGURAÇÃO DE MÍDIAS
+   ========================================================== */
+
+const MEDIA_BUCKET = "adventure-media";
+
+const MEDIA_LIMITS = {
+  image: 6 * 1024 * 1024,
+  audio: 10 * 1024 * 1024
+};
+
+const ALLOWED_MEDIA_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+  "audio/mpeg",
+  "audio/ogg",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/mp4"
+]);
+
+
+/* ==========================================================
+   SELETOR E VALIDAÇÃO
+   ========================================================== */
+
+function openMediaFileSelector() {
+  if (state.isUploadingMedia) {
+    return;
+  }
+
+  elements.mediaFileInput.value = "";
+  elements.mediaFileInput.click();
+}
+
+async function handleMediaFileSelected(event) {
+  const file = event.target.files?.[0];
+
+  if (!file) {
+    return;
+  }
+
+  const validationError =
+    validateMediaFile(file);
+
+  if (validationError) {
+    showMediaUploadStatus(
+      file.name,
+      0,
+      validationError,
+      true
+    );
+
+    return;
+  }
+
+  await uploadMediaFile(file);
+}
+
+function validateMediaFile(file) {
+  if (!ALLOWED_MEDIA_TYPES.has(file.type)) {
+    return (
+      "Formato não aceito. Use PNG, JPG, WEBP, GIF, " +
+      "MP3, OGG, WAV ou M4A."
+    );
+  }
+
+  const isAudio =
+    file.type.startsWith("audio/");
+
+  const maximumSize =
+    isAudio
+      ? MEDIA_LIMITS.audio
+      : MEDIA_LIMITS.image;
+
+  if (file.size > maximumSize) {
+    return isAudio
+      ? "O áudio deve possuir no máximo 10 MB."
+      : "A imagem deve possuir no máximo 6 MB.";
+  }
+
+  return null;
+}
+
+
+/* ==========================================================
+   ENVIO
+   ========================================================== */
+
+async function uploadMediaFile(file) {
+  state.isUploadingMedia = true;
+
+  setMediaButtonsDisabled(true);
+
+  showMediaUploadStatus(
+    file.name,
+    10,
+    "Preparando arquivo..."
+  );
+
+  try {
+    const mediaType =
+      inferMediaType(file);
+
+    const storagePath =
+      createMediaStoragePath(
+        file,
+        mediaType
+      );
+
+    showMediaUploadStatus(
+      file.name,
+      35,
+      "Enviando para o Supabase Storage..."
+    );
+
+    const {
+      data: uploadData,
+      error: uploadError
+    } = await state.client.storage
+      .from(MEDIA_BUCKET)
+      .upload(
+        storagePath,
+        file,
+        {
+          cacheControl: "3600",
+          contentType: file.type,
+          upsert: false
+        }
+      );
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    showMediaUploadStatus(
+      file.name,
+      72,
+      "Gerando endereço público..."
+    );
+
+    const {
+      data: publicUrlData
+    } = state.client.storage
+      .from(MEDIA_BUCKET)
+      .getPublicUrl(uploadData.path);
+
+    const publicUrl =
+      publicUrlData?.publicUrl;
+
+    if (!publicUrl) {
+      throw new Error(
+        "Não foi possível gerar o endereço público."
+      );
+    }
+
+    showMediaUploadStatus(
+      file.name,
+      85,
+      "Registrando na biblioteca..."
+    );
+
+    const {
+      data: mediaRecord,
+      error: recordError
+    } = await state.client
+      .from("media_library")
+      .insert({
+        game_id: state.game.id,
+
+        uploaded_by:
+          state.user.id,
+
+        storage_bucket:
+          MEDIA_BUCKET,
+
+        storage_path:
+          uploadData.path,
+
+        original_name:
+          file.name,
+
+        display_name:
+          removeFileExtension(file.name),
+
+        media_type:
+          mediaType,
+
+        mime_type:
+          file.type,
+
+        size_bytes:
+          file.size,
+
+        public_url:
+          publicUrl
+      })
+      .select(`
+        id,
+        game_id,
+        storage_bucket,
+        storage_path,
+        original_name,
+        display_name,
+        media_type,
+        mime_type,
+        size_bytes,
+        public_url,
+        alt_text,
+        created_at
+      `)
+      .single();
+
+    if (recordError) {
+      /*
+        Se o registro falhar, removemos o arquivo que acabou
+        de ser enviado para não deixar arquivos órfãos.
+      */
+      await state.client.storage
+        .from(MEDIA_BUCKET)
+        .remove([uploadData.path]);
+
+      throw recordError;
+    }
+
+    showMediaUploadStatus(
+      file.name,
+      100,
+      "Arquivo enviado com sucesso."
+    );
+
+    state.mediaLibrary.unshift(
+      mediaRecord
+    );
+
+    /*
+      Se o envio veio do formulário do bloco,
+      usamos imediatamente a URL resultante.
+    */
+    elements.blockMediaUrl.value =
+      mediaRecord.public_url;
+
+    if (
+      [
+        "image",
+        "pixel_art"
+      ].includes(
+        elements.blockType.value
+      ) &&
+      !elements.blockAltText.value.trim()
+    ) {
+      elements.blockAltText.value =
+        mediaRecord.display_name ||
+        removeFileExtension(
+          mediaRecord.original_name
+        );
+    }
+
+    renderBlockFormPreview();
+
+    applyMediaLibraryFilters();
+  } catch (error) {
+    console.error(
+      "Erro no envio de mídia:",
+      error
+    );
+
+    showMediaUploadStatus(
+      file.name,
+      100,
+      formatMediaError(error),
+      true
+    );
+  } finally {
+    state.isUploadingMedia = false;
+
+    setMediaButtonsDisabled(false);
+  }
+}
+
+function inferMediaType(file) {
+  if (file.type === "image/gif") {
+    return "gif";
+  }
+
+  if (file.type.startsWith("audio/")) {
+    return "audio";
+  }
+
+  if (
+    elements.blockType.value ===
+    "pixel_art"
+  ) {
+    return "pixel_art";
+  }
+
+  return "image";
+}
+
+function createMediaStoragePath(
+  file,
+  mediaType
+) {
+  const now = new Date();
+
+  const year =
+    String(now.getFullYear());
+
+  const month =
+    String(
+      now.getMonth() + 1
+    ).padStart(2, "0");
+
+  const randomId =
+    crypto.randomUUID();
+
+  const extension =
+    getFileExtension(file.name) ||
+    extensionFromMimeType(file.type);
+
+  const safeName =
+    sanitizeFileName(
+      removeFileExtension(file.name)
+    ).slice(0, 60) || "arquivo";
+
+  return [
+    state.game.slug,
+    mediaType,
+    year,
+    month,
+    `${safeName}-${randomId}.${extension}`
+  ].join("/");
+}
+
+function sanitizeFileName(value) {
+  return String(value || "")
+    .toLocaleLowerCase("pt-BR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function getFileExtension(fileName) {
+  const parts =
+    String(fileName || "").split(".");
+
+  return parts.length > 1
+    ? parts.pop().toLowerCase()
+    : "";
+}
+
+function removeFileExtension(fileName) {
+  return String(fileName || "")
+    .replace(/\.[^.]+$/, "");
+}
+
+function extensionFromMimeType(mimeType) {
+  const extensions = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/webp": "webp",
+    "image/gif": "gif",
+    "audio/mpeg": "mp3",
+    "audio/ogg": "ogg",
+    "audio/wav": "wav",
+    "audio/x-wav": "wav",
+    "audio/mp4": "m4a"
+  };
+
+  return extensions[mimeType] || "bin";
+}
+
+
+/* ==========================================================
+   PROGRESSO VISUAL
+   ========================================================== */
+
+function showMediaUploadStatus(
+  fileName,
+  percentage,
+  message,
+  isError = false
+) {
+  elements.mediaUploadStatus.classList.remove(
+    "is-hidden",
+    "is-error"
+  );
+
+  if (isError) {
+    elements.mediaUploadStatus.classList.add(
+      "is-error"
+    );
+  }
+
+  const safePercentage =
+    Math.max(
+      0,
+      Math.min(100, percentage)
+    );
+
+  elements.mediaUploadName.textContent =
+    fileName || "Arquivo";
+
+  elements.mediaUploadPercentage.textContent =
+    `${safePercentage}%`;
+
+  elements.mediaUploadProgress.style.width =
+    `${safePercentage}%`;
+
+  elements.mediaUploadMessage.textContent =
+    message || "";
+}
+
+function setMediaButtonsDisabled(disabled) {
+  elements.uploadMediaButton.disabled =
+    disabled;
+
+  elements.mediaLibraryUploadButton.disabled =
+    disabled;
+
+  elements.openMediaLibraryButton.disabled =
+    disabled;
+}
+
+
+/* ==========================================================
+   BIBLIOTECA
+   ========================================================== */
+
+async function openMediaLibrary() {
+  elements.mediaLibraryModal.classList.remove(
+    "is-hidden"
+  );
+
+  await loadMediaLibrary();
+}
+
+function closeMediaLibrary() {
+  if (state.isUploadingMedia) {
+    return;
+  }
+
+  elements.mediaLibraryModal.classList.add(
+    "is-hidden"
+  );
+
+  /*
+    O formulário do bloco permanece aberto por baixo.
+  */
+  if (
+    !elements.blockFormModal.classList.contains(
+      "is-hidden"
+    )
+  ) {
+    document.body.style.overflow =
+      "hidden";
+  }
+}
+
+function handleMediaLibraryModalClick(event) {
+  if (
+    event.target.closest(
+      "[data-close-media-library]"
+    )
+  ) {
+    closeMediaLibrary();
+  }
+}
+
+async function loadMediaLibrary() {
+  setMediaLibraryMessage(
+    "CARREGANDO ARQUIVOS..."
+  );
+
+  const {
+    data,
+    error
+  } = await state.client
+    .from("media_library")
+    .select(`
+      id,
+      game_id,
+      storage_bucket,
+      storage_path,
+      original_name,
+      display_name,
+      media_type,
+      mime_type,
+      size_bytes,
+      public_url,
+      alt_text,
+      created_at
+    `)
+    .eq("game_id", state.game.id)
+    .order("created_at", {
+      ascending: false
+    });
+
+  if (error) {
+    setMediaLibraryMessage(
+      formatDatabaseError(error)
+    );
+
+    return;
+  }
+
+  state.mediaLibrary =
+    data || [];
+
+  applyMediaLibraryFilters();
+}
+
+function applyMediaLibraryFilters() {
+  const searchTerm =
+    normalizeText(
+      elements.mediaLibrarySearch.value
+    );
+
+  const typeFilter =
+    elements.mediaLibraryType.value;
+
+  state.filteredMedia =
+    state.mediaLibrary.filter(media => {
+      const searchable =
+        normalizeText([
+          media.display_name,
+          media.original_name,
+          media.storage_path
+        ].filter(Boolean).join(" "));
+
+      const matchesSearch =
+        !searchTerm ||
+        searchable.includes(searchTerm);
+
+      const matchesType =
+        !typeFilter ||
+        media.media_type === typeFilter;
+
+      return (
+        matchesSearch &&
+        matchesType
+      );
+    });
+
+  renderMediaLibrary();
+}
+
+function renderMediaLibrary() {
+  elements.mediaLibraryList.replaceChildren();
+
+  const count =
+    state.filteredMedia.length;
+
+  elements.mediaLibraryCount.textContent =
+    count === 1
+      ? "1 arquivo"
+      : `${count} arquivos`;
+
+  if (count === 0) {
+    const empty =
+      document.createElement("div");
+
+    empty.className =
+      "media-library-list__empty";
+
+    empty.textContent =
+      state.mediaLibrary.length === 0
+        ? "Nenhuma mídia foi enviada ainda."
+        : "Nenhuma mídia corresponde aos filtros.";
+
+    elements.mediaLibraryList.appendChild(
+      empty
+    );
+
+    setMediaLibraryMessage("");
+
+    return;
+  }
+
+  const fragment =
+    document.createDocumentFragment();
+
+  state.filteredMedia.forEach(media => {
+    fragment.appendChild(
+      createMediaCard(media)
+    );
+  });
+
+  elements.mediaLibraryList.appendChild(
+    fragment
+  );
+
+  setMediaLibraryMessage(
+    "BIBLIOTECA ATUALIZADA."
+  );
+}
+
+function createMediaCard(media) {
+  const fragment =
+    elements.mediaCardTemplate.content
+      .cloneNode(true);
+
+  const card =
+    fragment.querySelector(
+      ".media-card"
+    );
+
+  const preview =
+    fragment.querySelector(
+      ".media-card__preview"
+    );
+
+  const type =
+    fragment.querySelector(
+      ".media-card__type"
+    );
+
+  const name =
+    fragment.querySelector(
+      ".media-card__name"
+    );
+
+  const details =
+    fragment.querySelector(
+      ".media-card__details"
+    );
+
+  card.dataset.mediaId = media.id;
+
+  renderMediaCardPreview(
+    preview,
+    media
+  );
+
+  type.textContent =
+    formatMediaType(media.media_type);
+
+  name.textContent =
+    media.display_name ||
+    media.original_name;
+
+  details.textContent = [
+    formatFileSize(media.size_bytes),
+    formatMediaDate(media.created_at)
+  ].filter(Boolean).join(" · ");
+
+  fragment
+    .querySelectorAll(
+      "[data-media-action]"
+    )
+    .forEach(button => {
+      button.dataset.mediaId =
+        media.id;
+    });
+
+  return fragment;
+}
+
+function renderMediaCardPreview(
+  container,
+  media
+) {
+  if (media.media_type === "audio") {
+    const audio =
+      document.createElement("audio");
+
+    audio.controls = true;
+    audio.preload = "metadata";
+    audio.src = media.public_url;
+
+    container.appendChild(audio);
+
+    return;
+  }
+
+  const image =
+    document.createElement("img");
+
+  image.src = media.public_url;
+
+  image.alt =
+    media.alt_text ||
+    media.display_name ||
+    "";
+
+  if (media.media_type === "pixel_art") {
+    image.classList.add(
+      "is-pixel-art"
+    );
+  }
+
+  container.appendChild(image);
+}
+
+function formatMediaType(mediaType) {
+  const names = {
+    image: "IMAGEM",
+    pixel_art: "PIXEL ART",
+    gif: "GIF",
+    audio: "ÁUDIO"
+  };
+
+  return names[mediaType] || mediaType;
+}
+
+function formatFileSize(sizeBytes) {
+  const size = Number(sizeBytes);
+
+  if (!Number.isFinite(size)) {
+    return "";
+  }
+
+  if (size < 1024) {
+    return `${size} B`;
+  }
+
+  if (size < 1024 * 1024) {
+    return `${(size / 1024).toFixed(1)} KB`;
+  }
+
+  return `${
+    (size / (1024 * 1024)).toFixed(1)
+  } MB`;
+}
+
+function formatMediaDate(dateValue) {
+  if (!dateValue) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat(
+    "pt-BR",
+    {
+      dateStyle: "short"
+    }
+  ).format(new Date(dateValue));
+}
+
+function setMediaLibraryMessage(message) {
+  elements.mediaLibraryMessage.textContent =
+    message || "";
+}
+
+
+/* ==========================================================
+   AÇÕES DA BIBLIOTECA
+   ========================================================== */
+
+async function handleMediaLibraryListClick(event) {
+  const button = event.target.closest(
+    "[data-media-action]"
+  );
+
+  if (!button) {
+    return;
+  }
+
+  const media = state.mediaLibrary.find(
+    item =>
+      item.id === button.dataset.mediaId
+  );
+
+  if (!media) {
+    return;
+  }
+
+  switch (button.dataset.mediaAction) {
+    case "select":
+      selectMediaForBlock(media);
+      break;
+
+    case "copy":
+      await copyMediaUrl(media);
+      break;
+
+    case "delete":
+      await deleteMedia(media);
+      break;
+  }
+}
+
+function selectMediaForBlock(media) {
+  elements.blockMediaUrl.value =
+    media.public_url;
+
+  if (
+    media.media_type === "audio"
+  ) {
+    elements.blockType.value = "audio";
+  } else if (
+    media.media_type === "pixel_art"
+  ) {
+    elements.blockType.value =
+      "pixel_art";
+  } else {
+    elements.blockType.value = "image";
+  }
+
+  if (
+    !elements.blockAltText.value.trim()
+  ) {
+    elements.blockAltText.value =
+      media.alt_text ||
+      media.display_name ||
+      removeFileExtension(
+        media.original_name
+      );
+  }
+
+  updateBlockFormInterface();
+
+  closeMediaLibrary();
+}
+
+async function copyMediaUrl(media) {
+  try {
+    await navigator.clipboard.writeText(
+      media.public_url
+    );
+
+    setMediaLibraryMessage(
+      "ENDEREÇO COPIADO."
+    );
+  } catch (error) {
+    console.error(
+      "Não foi possível copiar:",
+      error
+    );
+
+    setMediaLibraryMessage(
+      "Não foi possível copiar automaticamente."
+    );
+  }
+}
+
+async function deleteMedia(media) {
+  const isUsed =
+    await checkMediaUsage(
+      media.public_url
+    );
+
+  if (isUsed) {
+    window.alert(
+      "Este arquivo está sendo usado em pelo menos um bloco.\n\n" +
+      "Remova-o dos blocos antes de excluí-lo."
+    );
+
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Excluir permanentemente "${media.display_name || media.original_name}"?\n\n` +
+    "Essa ação não poderá ser desfeita."
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  setMediaLibraryMessage(
+    "EXCLUINDO ARQUIVO..."
+  );
+
+  const {
+    error: storageError
+  } = await state.client.storage
+    .from(media.storage_bucket)
+    .remove([media.storage_path]);
+
+  if (storageError) {
+    setMediaLibraryMessage(
+      formatMediaError(storageError)
+    );
+
+    return;
+  }
+
+  const {
+    error: databaseError
+  } = await state.client
+    .from("media_library")
+    .delete()
+    .eq("id", media.id)
+    .eq("game_id", state.game.id);
+
+  if (databaseError) {
+    setMediaLibraryMessage(
+      formatDatabaseError(databaseError)
+    );
+
+    return;
+  }
+
+  state.mediaLibrary =
+    state.mediaLibrary.filter(
+      item => item.id !== media.id
+    );
+
+  applyMediaLibraryFilters();
+}
+
+async function checkMediaUsage(publicUrl) {
+  const {
+    count,
+    error
+  } = await state.client
+    .from("scene_blocks")
+    .select(
+      "id",
+      {
+        count: "exact",
+        head: true
+      }
+    )
+    .eq("media_url", publicUrl);
+
+  if (error) {
+    throw error;
+  }
+
+  return Number(count || 0) > 0;
+}
+
+
+/* ==========================================================
+   ERROS DE STORAGE
+   ========================================================== */
+
+function formatMediaError(error) {
+  const message =
+    String(
+      error?.message ||
+      "Erro desconhecido."
+    );
+
+  const lowerMessage =
+    message.toLocaleLowerCase("pt-BR");
+
+  if (
+    lowerMessage.includes(
+      "maximum allowed size"
+    ) ||
+    lowerMessage.includes(
+      "payload too large"
+    )
+  ) {
+    return "O arquivo é maior que o limite permitido.";
+  }
+
+  if (
+    lowerMessage.includes(
+      "mime type"
+    )
+  ) {
+    return "O formato do arquivo não é permitido.";
+  }
+
+  if (
+    lowerMessage.includes(
+      "row-level security"
+    ) ||
+    lowerMessage.includes(
+      "unauthorized"
+    )
+  ) {
+    return (
+      "O envio foi bloqueado pelas permissões do Storage."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "duplicate"
+    ) ||
+    lowerMessage.includes(
+      "already exists"
+    )
+  ) {
+    return "Já existe um arquivo com esse endereço.";
   }
 
   return message;
