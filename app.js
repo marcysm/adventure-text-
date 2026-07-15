@@ -478,13 +478,31 @@ async function updateSession(changes) {
     updated_at: new Date().toISOString()
   };
 
+  /*
+    Primeiro realizamos a atualização sem exigir que
+    o Supabase devolva exatamente uma linha.
+  */
   const {
-    data,
-    error
+    error: updateError
   } = await state.client
     .from("game_sessions")
     .update(updateData)
     .eq("id", state.session.id)
+    .eq("user_id", state.user.id)
+    .eq("game_id", state.game.id);
+
+  if (updateError) {
+    throw updateError;
+  }
+
+  /*
+    Depois consultamos novamente a partida atual.
+  */
+  const {
+    data: updatedSession,
+    error: readError
+  } = await state.client
+    .from("game_sessions")
     .select(`
       id,
       user_id,
@@ -497,13 +515,22 @@ async function updateSession(changes) {
       updated_at,
       completed_at
     `)
-    .single();
+    .eq("id", state.session.id)
+    .eq("user_id", state.user.id)
+    .eq("game_id", state.game.id)
+    .maybeSingle();
 
-  if (error) {
-    throw error;
+  if (readError) {
+    throw readError;
   }
 
-  state.session = data;
+  if (!updatedSession) {
+    throw new Error(
+      "A partida não pôde ser atualizada. Verifique as permissões de game_sessions."
+    );
+  }
+
+  state.session = updatedSession;
 }
 
 /* ==========================================================
