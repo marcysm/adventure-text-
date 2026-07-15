@@ -122,15 +122,13 @@
         <span>EM BREVE</span>
       </button>
 
-      <button
-        class="admin-navigation__item"
-        type="button"
-        data-section="responses"
-        disabled
-      >
-        CAMINHOS
-        <span>EM BREVE</span>
-      </button>
+     <button
+  class="admin-navigation__item"
+  type="button"
+  data-section="responses"
+>
+  CAMINHOS
+</button>
 
       <button
         class="admin-navigation__item"
@@ -269,7 +267,175 @@
         </div>
       </section>
 
+<!-- =====================================================
+     CONTEÚDO: CAMINHOS E RESPOSTAS
+     ===================================================== -->
 
+<section
+  id="responses-section"
+  class="admin-section is-hidden"
+>
+  <div class="section-heading">
+    <div>
+      <p class="section-heading__eyebrow">
+        INTERPRETAÇÃO DE COMANDOS
+      </p>
+
+      <h2>Caminhos</h2>
+
+      <p>
+        Defina quais comandos o jogador pode usar,
+        quais respostas serão mostradas e para onde
+        cada ação levará.
+      </p>
+    </div>
+
+    <button
+      id="new-response-button"
+      class="button button--primary"
+      type="button"
+    >
+      + NOVO CAMINHO
+    </button>
+  </div>
+
+
+  <!-- =================================================
+       ESTATÍSTICAS
+       ================================================= -->
+
+  <div class="scene-statistics">
+    <article>
+      <span>TOTAL</span>
+
+      <strong id="total-responses">
+        0
+      </strong>
+    </article>
+
+    <article>
+      <span>ATIVOS</span>
+
+      <strong id="active-responses">
+        0
+      </strong>
+    </article>
+
+    <article>
+      <span>DESATIVADOS</span>
+
+      <strong id="inactive-responses">
+        0
+      </strong>
+    </article>
+
+    <article>
+      <span>COM DESTINO</span>
+
+      <strong id="destination-responses">
+        0
+      </strong>
+    </article>
+  </div>
+
+
+  <!-- =================================================
+       FILTROS
+       ================================================= -->
+
+  <section class="scene-filters response-filters">
+    <div class="field field--search">
+      <label for="response-search">
+        PESQUISAR
+      </label>
+
+      <input
+        id="response-search"
+        type="search"
+        placeholder="Identificador, palavra ou resposta..."
+        autocomplete="off"
+      >
+    </div>
+
+    <div class="field">
+      <label for="response-scene-filter">
+        CENA DE ORIGEM
+      </label>
+
+      <select id="response-scene-filter">
+        <option value="">
+          Todas as cenas
+        </option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="response-mode-filter">
+        RECONHECIMENTO
+      </label>
+
+      <select id="response-mode-filter">
+        <option value="">
+          Todos
+        </option>
+
+        <option value="exact">
+          Frase exata
+        </option>
+
+        <option value="keywords">
+          Palavras combinadas
+        </option>
+
+        <option value="any_keyword">
+          Qualquer palavra
+        </option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="response-status-filter">
+        ESTADO
+      </label>
+
+      <select id="response-status-filter">
+        <option value="">
+          Todos
+        </option>
+
+        <option value="active">
+          Ativos
+        </option>
+
+        <option value="inactive">
+          Desativados
+        </option>
+
+        <option value="destination">
+          Com destino
+        </option>
+      </select>
+    </div>
+  </section>
+
+
+  <p
+    id="response-list-message"
+    class="scene-list-message"
+    aria-live="polite"
+  ></p>
+
+
+  <!-- =================================================
+       LISTA
+       ================================================= -->
+
+  <div
+    id="response-list"
+    class="response-list"
+  ></div>
+</section>
+      
       <!-- =================================================
            MENSAGEM DA LISTA
            ================================================= -->
@@ -1447,6 +1613,511 @@
     </div>
   </article>
 </template>
+
+  <!-- =====================================================
+     MODAL DE CAMINHO E RESPOSTA
+     ===================================================== -->
+
+<div
+  id="response-modal"
+  class="modal is-hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="response-modal-title"
+>
+  <div
+    class="modal__backdrop"
+    data-close-response-modal
+  ></div>
+
+  <section class="modal__panel modal__panel--large">
+    <header class="modal__header">
+      <div>
+        <p class="modal__eyebrow">
+          INTERPRETAÇÃO DE COMANDO
+        </p>
+
+        <h2 id="response-modal-title">
+          Novo caminho
+        </h2>
+      </div>
+
+      <button
+        class="modal__close"
+        type="button"
+        data-close-response-modal
+        aria-label="Fechar formulário"
+      >
+        ×
+      </button>
+    </header>
+
+
+    <form
+      id="response-form"
+      class="scene-form"
+    >
+      <input
+        id="response-id"
+        type="hidden"
+      >
+
+
+      <!-- ===============================================
+           IDENTIFICAÇÃO
+           =============================================== -->
+
+      <fieldset class="form-group">
+        <legend>Identificação</legend>
+
+        <div class="form-grid form-grid--two">
+          <div class="field">
+            <label for="response-key">
+              IDENTIFICADOR INTERNO *
+            </label>
+
+            <input
+              id="response-key"
+              type="text"
+              maxlength="100"
+              required
+              placeholder="examinar_porta"
+            >
+
+            <small>
+              Use letras minúsculas, números e sublinhados.
+            </small>
+          </div>
+
+          <div class="field">
+            <label for="response-source-scene">
+              CENA DE ORIGEM *
+            </label>
+
+            <select
+              id="response-source-scene"
+              required
+            >
+              <option value="">
+                Selecione uma cena
+              </option>
+            </select>
+
+            <small>
+              O comando funcionará apenas nesta cena.
+            </small>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="response-description">
+            DESCRIÇÃO ADMINISTRATIVA
+          </label>
+
+          <textarea
+            id="response-description"
+            rows="3"
+            maxlength="1000"
+            placeholder="Explique quando este caminho deve ser usado..."
+          ></textarea>
+        </div>
+      </fieldset>
+
+
+      <!-- ===============================================
+           RECONHECIMENTO
+           =============================================== -->
+
+      <fieldset class="form-group">
+        <legend>Reconhecimento do comando</legend>
+
+        <div class="field">
+          <label for="response-match-mode">
+            FORMA DE RECONHECIMENTO
+          </label>
+
+          <select id="response-match-mode">
+            <option value="exact">
+              Frase exata
+            </option>
+
+            <option value="keywords">
+              Combinação de palavras
+            </option>
+
+            <option value="any_keyword">
+              Qualquer palavra cadastrada
+            </option>
+          </select>
+        </div>
+
+
+        <!-- FRASE EXATA -->
+
+        <div
+          id="exact-phrase-field"
+          class="field response-mode-field"
+        >
+          <label for="response-exact-phrase">
+            FRASE EXATA *
+          </label>
+
+          <input
+            id="response-exact-phrase"
+            type="text"
+            maxlength="500"
+            placeholder="abrir porta vermelha"
+          >
+
+          <small>
+            O comando precisa corresponder a essa frase.
+            Maiúsculas e acentos são ignorados.
+          </small>
+        </div>
+
+
+        <!-- PALAVRAS -->
+
+        <div
+          id="keyword-fields"
+          class="response-mode-field is-hidden"
+        >
+          <div class="form-grid form-grid--two">
+            <div class="field">
+              <label for="response-required-words">
+                PALAVRAS OBRIGATÓRIAS
+              </label>
+
+              <textarea
+                id="response-required-words"
+                rows="4"
+                placeholder="porta, vermelha"
+              ></textarea>
+
+              <small>
+                Separe as palavras com vírgulas ou quebras de linha.
+              </small>
+            </div>
+
+            <div class="field">
+              <label for="response-optional-words">
+                PALAVRAS OPCIONAIS
+              </label>
+
+              <textarea
+                id="response-optional-words"
+                rows="4"
+                placeholder="abrir, examinar, olhar"
+              ></textarea>
+
+              <small>
+                Ajudam a reconhecer variações do comando.
+              </small>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="response-forbidden-words">
+              PALAVRAS PROIBIDAS
+            </label>
+
+            <textarea
+              id="response-forbidden-words"
+              rows="3"
+              placeholder="arrombar, destruir"
+            ></textarea>
+
+            <small>
+              Caso uma delas apareça, este caminho não será usado.
+            </small>
+          </div>
+        </div>
+
+
+        <!-- SINÔNIMOS -->
+
+        <div
+          id="response-synonyms-field"
+          class="field"
+        >
+          <label for="response-synonyms">
+            GRUPOS DE SINÔNIMOS
+          </label>
+
+          <textarea
+            id="response-synonyms"
+            rows="6"
+            placeholder="examinar = olhar, observar, investigar&#10;porta = entrada, passagem"
+          ></textarea>
+
+          <small>
+            Use um grupo por linha. Exemplo:
+            palavra = sinônimo, sinônimo.
+          </small>
+        </div>
+      </fieldset>
+
+
+      <!-- ===============================================
+           RESPOSTA
+           =============================================== -->
+
+      <fieldset class="form-group">
+        <legend>Resposta ao jogador</legend>
+
+        <div class="field">
+          <label for="response-text">
+            TEXTO DA RESPOSTA
+          </label>
+
+          <textarea
+            id="response-text"
+            rows="6"
+            maxlength="5000"
+            placeholder="A porta está trancada por dentro."
+          ></textarea>
+
+          <small>
+            Pode ficar vazio quando a ação apenas muda de cena.
+          </small>
+        </div>
+      </fieldset>
+
+
+      <!-- ===============================================
+           DESTINO
+           =============================================== -->
+
+      <fieldset class="form-group">
+        <legend>Destino da ação</legend>
+
+        <div class="form-grid form-grid--two">
+          <div class="field">
+            <label for="response-target-scene">
+              CENA DE DESTINO
+            </label>
+
+            <select id="response-target-scene">
+              <option value="">
+                Permanecer na cena atual
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="response-target-route">
+              ALTERAR ROTA
+            </label>
+
+            <select id="response-target-route">
+              <option value="">
+                Manter a rota atual
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="response-destination-summary">
+          <span>RESULTADO DA AÇÃO</span>
+
+          <p id="response-destination-preview">
+            O jogador permanecerá na cena e na rota atuais.
+          </p>
+        </div>
+      </fieldset>
+
+
+      <!-- ===============================================
+           PRIORIDADE E ESTADO
+           =============================================== -->
+
+      <fieldset class="form-group">
+        <legend>Prioridade e publicação</legend>
+
+        <div class="form-grid form-grid--two">
+          <div class="field">
+            <label for="response-priority">
+              PRIORIDADE
+            </label>
+
+            <input
+              id="response-priority"
+              type="number"
+              min="-10000"
+              max="10000"
+              step="1"
+              value="100"
+            >
+
+            <small>
+              Números maiores são verificados primeiro.
+              Frases exatas normalmente usam prioridade alta.
+            </small>
+          </div>
+
+          <div class="field">
+            <label for="response-enabled">
+              ESTADO
+            </label>
+
+            <label class="toggle-option toggle-option--compact">
+              <input
+                id="response-enabled"
+                type="checkbox"
+                checked
+              >
+
+              <span class="toggle-option__control"></span>
+
+              <span>
+                <strong>CAMINHO ATIVO</strong>
+
+                <small>
+                  Caminhos desativados são ignorados pelo jogo.
+                </small>
+              </span>
+            </label>
+          </div>
+        </div>
+      </fieldset>
+
+
+      <!-- ===============================================
+           TESTADOR
+           =============================================== -->
+
+      <fieldset class="form-group">
+        <legend>Teste rápido</legend>
+
+        <div class="response-tester">
+          <div class="field">
+            <label for="response-test-input">
+              COMANDO DE TESTE
+            </label>
+
+            <input
+              id="response-test-input"
+              type="text"
+              placeholder="Digite como se fosse o jogador..."
+              autocomplete="off"
+            >
+          </div>
+
+          <div
+            id="response-test-result"
+            class="response-test-result"
+          >
+            Digite um comando para verificar se ele
+            corresponde às regras acima.
+          </div>
+        </div>
+      </fieldset>
+
+
+      <p
+        id="response-form-message"
+        class="form-message"
+        aria-live="polite"
+      ></p>
+
+
+      <footer class="form-actions">
+        <button
+          class="button button--secondary"
+          type="button"
+          data-close-response-modal
+        >
+          CANCELAR
+        </button>
+
+        <button
+          id="save-response-button"
+          class="button button--primary"
+          type="submit"
+        >
+          SALVAR CAMINHO
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+
+  <!-- =====================================================
+     AÇÕES DO CAMINHO
+     ===================================================== -->
+
+<div
+  id="response-actions-modal"
+  class="modal is-hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="response-actions-title"
+>
+  <div
+    class="modal__backdrop"
+    data-close-response-actions
+  ></div>
+
+  <section class="modal__panel modal__panel--small">
+    <header class="modal__header">
+      <div>
+        <p class="modal__eyebrow">
+          AÇÕES DO CAMINHO
+        </p>
+
+        <h2 id="response-actions-title">
+          Caminho
+        </h2>
+      </div>
+
+      <button
+        class="modal__close"
+        type="button"
+        data-close-response-actions
+        aria-label="Fechar"
+      >
+        ×
+      </button>
+    </header>
+
+    <div class="scene-actions">
+      <button
+        id="duplicate-response-button"
+        type="button"
+      >
+        <strong>DUPLICAR CAMINHO</strong>
+
+        <span>
+          Cria uma cópia desativada para edição.
+        </span>
+      </button>
+
+      <button
+        id="toggle-response-button"
+        type="button"
+      >
+        <strong>DESATIVAR CAMINHO</strong>
+
+        <span>
+          Impede temporariamente que a regra seja utilizada.
+        </span>
+      </button>
+
+      <button
+        id="delete-response-button"
+        class="scene-action--danger"
+        type="button"
+      >
+        <strong>EXCLUIR CAMINHO</strong>
+
+        <span>
+          Remove permanentemente esta regra.
+        </span>
+      </button>
+    </div>
+  </section>
+</div>
+
   
   <!-- =====================================================
        TEMPLATES
@@ -1509,6 +2180,82 @@
     </article>
   </template>
 
+  <!-- =====================================================
+     TEMPLATE DO CAMINHO
+     ===================================================== -->
+
+<template id="response-card-template">
+  <article class="response-card">
+    <div class="response-card__status-column">
+      <span class="response-card__status"></span>
+    </div>
+
+    <div class="response-card__content">
+      <header class="response-card__header">
+        <div>
+          <h3 class="response-card__title">
+            Caminho
+          </h3>
+
+          <p class="response-card__identifier">
+            identificador
+          </p>
+        </div>
+
+        <span class="response-card__priority">
+          PRIORIDADE 100
+        </span>
+      </header>
+
+      <div class="response-card__locations">
+        <span data-response-location="source">
+          ORIGEM
+        </span>
+
+        <strong>→</strong>
+
+        <span data-response-location="target">
+          MESMA CENA
+        </span>
+      </div>
+
+      <p class="response-card__description"></p>
+
+      <div class="response-card__rule">
+        <span class="response-card__mode">
+          FRASE EXATA
+        </span>
+
+        <code class="response-card__matcher">
+          abrir porta
+        </code>
+      </div>
+
+      <blockquote class="response-card__answer">
+        Sem texto de resposta.
+      </blockquote>
+    </div>
+
+    <div class="response-card__actions">
+      <button
+        class="button button--secondary"
+        type="button"
+        data-response-action="edit"
+      >
+        EDITAR
+      </button>
+
+      <button
+        class="button button--icon"
+        type="button"
+        data-response-action="more"
+        aria-label="Mais ações"
+      >
+        •••
+      </button>
+    </div>
+  </article>
+</template>
 
   <!-- =====================================================
        SCRIPTS
