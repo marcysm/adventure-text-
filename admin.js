@@ -57,11 +57,16 @@ filteredResponses: [],
 editingResponseId: null,
 actionsResponseId: null,
 
+filteredRoutes: [],
+editingRouteId: null,
+actionsRouteId: null,
+
 currentSection: "scenes",
 
 isSaving: false,
 isSavingBlock: false,
 isSavingResponse: false,
+isSavingRoute: false,
 isUploadingMedia: false
 };
 
@@ -115,11 +120,13 @@ async function initializeAdminPanel() {
     await loadPanelData();
 
     displayAdminIdentity();
-   populateRouteSelectors();
+  populateRouteSelectors();
 populateResponseSelectors();
+populateRouteSceneSelector();
 
 applySceneFilters();
 applyResponseFilters();
+applyRouteFilters();
 
 showAdminSection("scenes");
 
@@ -799,6 +806,220 @@ function cacheElements() {
     document.getElementById(
       "delete-response-button"
     );
+
+     /* ======================================================
+     ELEMENTOS DO EDITOR DE ROTAS
+     ====================================================== */
+
+  elements.routesSection =
+    document.getElementById(
+      "routes-section"
+    );
+
+  elements.newRouteButton =
+    document.getElementById(
+      "new-route-button"
+    );
+
+  elements.totalRoutes =
+    document.getElementById(
+      "total-routes"
+    );
+
+  elements.activeRoutes =
+    document.getElementById(
+      "active-routes"
+    );
+
+  elements.secretRoutes =
+    document.getElementById(
+      "secret-routes"
+    );
+
+  elements.initialRoutes =
+    document.getElementById(
+      "initial-routes"
+    );
+
+  elements.routeSearch =
+    document.getElementById(
+      "route-search"
+    );
+
+  elements.routeStatusFilter =
+    document.getElementById(
+      "route-status-filter"
+    );
+
+  elements.routeListMessage =
+    document.getElementById(
+      "route-list-message"
+    );
+
+  elements.routeList =
+    document.getElementById(
+      "route-list"
+    );
+
+  elements.routeCardTemplate =
+    document.getElementById(
+      "route-card-template"
+    );
+
+  elements.routeModal =
+    document.getElementById(
+      "route-modal"
+    );
+
+  elements.routeModalTitle =
+    document.getElementById(
+      "route-modal-title"
+    );
+
+  elements.routeForm =
+    document.getElementById(
+      "route-form"
+    );
+
+  elements.routeId =
+    document.getElementById(
+      "route-id"
+    );
+
+  elements.routeName =
+    document.getElementById(
+      "route-name"
+    );
+
+  elements.routeCode =
+    document.getElementById(
+      "route-code"
+    );
+
+  elements.routeDescription =
+    document.getElementById(
+      "route-description"
+    );
+
+  elements.routeAdminDescription =
+    document.getElementById(
+      "route-admin-description"
+    );
+
+  elements.routeStartScene =
+    document.getElementById(
+      "route-start-scene"
+    );
+
+  elements.routeDisplayOrder =
+    document.getElementById(
+      "route-display-order"
+    );
+
+  elements.routePrimaryPicker =
+    document.getElementById(
+      "route-primary-picker"
+    );
+
+  elements.routePrimaryColor =
+    document.getElementById(
+      "route-primary-color"
+    );
+
+  elements.routeSecondaryPicker =
+    document.getElementById(
+      "route-secondary-picker"
+    );
+
+  elements.routeSecondaryColor =
+    document.getElementById(
+      "route-secondary-color"
+    );
+
+  elements.routeBackgroundPicker =
+    document.getElementById(
+      "route-background-picker"
+    );
+
+  elements.routeBackgroundColor =
+    document.getElementById(
+      "route-background-color"
+    );
+
+  elements.routePanelPicker =
+    document.getElementById(
+      "route-panel-picker"
+    );
+
+  elements.routePanelColor =
+    document.getElementById(
+      "route-panel-color"
+    );
+
+  elements.routeBackgroundImage =
+    document.getElementById(
+      "route-background-image"
+    );
+
+  elements.routePreview =
+    document.getElementById(
+      "route-preview"
+    );
+
+  elements.routePreviewName =
+    document.getElementById(
+      "route-preview-name"
+    );
+
+  elements.routeEnabled =
+    document.getElementById(
+      "route-enabled"
+    );
+
+  elements.routeSecret =
+    document.getElementById(
+      "route-secret"
+    );
+
+  elements.routeInitiallyAvailable =
+    document.getElementById(
+      "route-initially-available"
+    );
+
+  elements.routeFormMessage =
+    document.getElementById(
+      "route-form-message"
+    );
+
+  elements.saveRouteButton =
+    document.getElementById(
+      "save-route-button"
+    );
+
+  elements.routeActionsModal =
+    document.getElementById(
+      "route-actions-modal"
+    );
+
+  elements.routeActionsTitle =
+    document.getElementById(
+      "route-actions-title"
+    );
+
+  elements.duplicateRouteButton =
+    document.getElementById(
+      "duplicate-route-button"
+    );
+
+  elements.toggleRouteButton =
+    document.getElementById(
+      "toggle-route-button"
+    );
+
+  elements.deleteRouteButton =
+    document.getElementById(
+      "delete-route-button"
+    );
    
   const missing =
     Object.entries(elements)
@@ -1001,6 +1222,9 @@ document.addEventListener("keydown", event => {
   closeResponseActionsModal();
   closeResponseModal();
 
+     closeRouteActionsModal();
+  closeRouteModal();
+   
   closeSceneModal();
   closeActionsModal();
 });
@@ -1097,6 +1321,72 @@ elements.navigationItems.forEach(
     "click",
     deleteSelectedResponse
   );
+
+     /* ======================================================
+     EVENTOS DO EDITOR DE ROTAS
+     ====================================================== */
+
+  elements.newRouteButton.addEventListener(
+    "click",
+    openNewRouteModal
+  );
+
+  elements.routeSearch.addEventListener(
+    "input",
+    applyRouteFilters
+  );
+
+  elements.routeStatusFilter.addEventListener(
+    "change",
+    applyRouteFilters
+  );
+
+  elements.routeList.addEventListener(
+    "click",
+    handleRouteListClick
+  );
+
+  elements.routeForm.addEventListener(
+    "submit",
+    handleRouteFormSubmit
+  );
+
+  elements.routeName.addEventListener(
+    "input",
+    handleRouteNameInput
+  );
+
+  elements.routeCode.addEventListener(
+    "input",
+    handleRouteCodeInput
+  );
+
+  elements.routeModal.addEventListener(
+    "click",
+    handleRouteModalClick
+  );
+
+  elements.routeActionsModal.addEventListener(
+    "click",
+    handleRouteActionsModalClick
+  );
+
+  elements.duplicateRouteButton.addEventListener(
+    "click",
+    duplicateSelectedRoute
+  );
+
+  elements.toggleRouteButton.addEventListener(
+    "click",
+    toggleSelectedRoute
+  );
+
+  elements.deleteRouteButton.addEventListener(
+    "click",
+    deleteSelectedRoute
+  );
+
+  configureRouteColorEvents();
 
   const responseTestEvents = [
     elements.responseTestInput,
@@ -1312,21 +1602,32 @@ async function loadPanelData() {
     scenesResult,
     responsesResult
   ] = await Promise.all([
-    state.client
-      .from("routes")
-      .select(`
-        id,
-        code,
-        name,
-        primary_color,
-        is_secret,
-        is_enabled,
-        display_order
-      `)
-      .eq("game_id", state.game.id)
-      .order("display_order", {
-        ascending: true
-      }),
+   state.client
+  .from("routes")
+  .select(`
+    id,
+    game_id,
+    code,
+    name,
+    description,
+    admin_description,
+    primary_color,
+    secondary_color,
+    background_color,
+    panel_color,
+    background_image_url,
+    start_scene_id,
+    is_secret,
+    is_initially_available,
+    is_enabled,
+    display_order,
+    created_at,
+    updated_at
+  `)
+  .eq("game_id", state.game.id)
+  .order("display_order", {
+    ascending: true
+  })
 
     state.client
       .from("scenes")
@@ -5420,12 +5721,16 @@ async function checkMediaUsage(
    ========================================================== */
 
 function updateBodyOverflow() {
-  const hasOpenModal = [
-    elements.sceneModal,
-    elements.sceneActionsModal,
-    elements.blocksModal,
-    elements.blockFormModal,
-    elements.mediaLibraryModal
+ const hasOpenModal = [
+  elements.sceneModal,
+  elements.sceneActionsModal,
+  elements.blocksModal,
+  elements.blockFormModal,
+  elements.mediaLibraryModal,
+  elements.responseModal,
+  elements.responseActionsModal,
+  elements.routeModal,
+  elements.routeActionsModal
   ].some(
     modal =>
       modal &&
@@ -5440,6 +5745,1508 @@ function updateBodyOverflow() {
       : "";
 }
 
+/* ==========================================================
+   EDITOR DE ROTAS
+   ========================================================== */
+
+
+/* ==========================================================
+   SELETOR DE CENA INICIAL
+   ========================================================== */
+
+function populateRouteSceneSelector() {
+  elements.routeStartScene
+    .querySelectorAll(
+      'option[data-dynamic-scene="true"]'
+    )
+    .forEach(option => option.remove());
+
+  const sortedScenes =
+    [...state.scenes].sort(
+      (firstScene, secondScene) => {
+        const firstName =
+          firstScene.title ||
+          firstScene.scene_key;
+
+        const secondName =
+          secondScene.title ||
+          secondScene.scene_key;
+
+        return firstName.localeCompare(
+          secondName,
+          "pt-BR"
+        );
+      }
+    );
+
+  sortedScenes.forEach(scene => {
+    const option =
+      document.createElement("option");
+
+    option.value = scene.id;
+
+    option.textContent =
+      scene.title
+        ? `${scene.title} — ${scene.scene_key}`
+        : scene.scene_key;
+
+    option.dataset.dynamicScene =
+      "true";
+
+    elements.routeStartScene.appendChild(
+      option
+    );
+  });
+}
+
+
+/* ==========================================================
+   FILTROS DAS ROTAS
+   ========================================================== */
+
+function applyRouteFilters() {
+  const searchTerm =
+    normalizeText(
+      elements.routeSearch.value
+    );
+
+  const statusFilter =
+    elements.routeStatusFilter.value;
+
+  state.filteredRoutes =
+    state.routes.filter(route => {
+      const searchableContent =
+        normalizeText(
+          [
+            route.name,
+            route.code,
+            route.description,
+            route.admin_description
+          ]
+            .filter(Boolean)
+            .join(" ")
+        );
+
+      const matchesSearch =
+        !searchTerm ||
+        searchableContent.includes(
+          searchTerm
+        );
+
+      let matchesStatus = true;
+
+      switch (statusFilter) {
+        case "active":
+          matchesStatus =
+            route.is_enabled === true;
+          break;
+
+        case "inactive":
+          matchesStatus =
+            route.is_enabled === false;
+          break;
+
+        case "secret":
+          matchesStatus =
+            route.is_secret === true;
+          break;
+
+        case "initial":
+          matchesStatus =
+            route.is_initially_available === true;
+          break;
+
+        default:
+          matchesStatus = true;
+      }
+
+      return (
+        matchesSearch &&
+        matchesStatus
+      );
+    });
+
+  updateRouteStatistics();
+  renderRouteList();
+}
+
+
+function updateRouteStatistics() {
+  elements.totalRoutes.textContent =
+    String(state.routes.length);
+
+  elements.activeRoutes.textContent =
+    String(
+      state.routes.filter(
+        route => route.is_enabled
+      ).length
+    );
+
+  elements.secretRoutes.textContent =
+    String(
+      state.routes.filter(
+        route => route.is_secret
+      ).length
+    );
+
+  elements.initialRoutes.textContent =
+    String(
+      state.routes.filter(
+        route =>
+          route.is_initially_available
+      ).length
+    );
+}
+
+
+/* ==========================================================
+   LISTA DAS ROTAS
+   ========================================================== */
+
+function renderRouteList() {
+  elements.routeList.replaceChildren();
+
+  if (
+    state.filteredRoutes.length === 0
+  ) {
+    const empty =
+      document.createElement("div");
+
+    empty.className =
+      "route-list__empty";
+
+    empty.textContent =
+      "Nenhuma rota corresponde aos filtros selecionados.";
+
+    elements.routeList.appendChild(
+      empty
+    );
+
+    showRouteListMessage(
+      "NENHUMA ROTA ENCONTRADA."
+    );
+
+    return;
+  }
+
+  const fragment =
+    document.createDocumentFragment();
+
+  state.filteredRoutes.forEach(route => {
+    fragment.appendChild(
+      createRouteCard(route)
+    );
+  });
+
+  elements.routeList.appendChild(
+    fragment
+  );
+
+  showRouteListMessage(
+    `${state.filteredRoutes.length} ROTA(S) EXIBIDA(S).`
+  );
+}
+
+
+function createRouteCard(route) {
+  const fragment =
+    elements.routeCardTemplate.content
+      .cloneNode(true);
+
+  const card =
+    fragment.querySelector(
+      ".route-card"
+    );
+
+  const color =
+    fragment.querySelector(
+      ".route-card__color"
+    );
+
+  const title =
+    fragment.querySelector(
+      ".route-card__title"
+    );
+
+  const code =
+    fragment.querySelector(
+      ".route-card__code"
+    );
+
+  const description =
+    fragment.querySelector(
+      ".route-card__description"
+    );
+
+  const secretBadge =
+    fragment.querySelector(
+      '[data-route-badge="secret"]'
+    );
+
+  const initialBadge =
+    fragment.querySelector(
+      '[data-route-badge="initial"]'
+    );
+
+  const stateBadge =
+    fragment.querySelector(
+      '[data-route-badge="state"]'
+    );
+
+  const sceneDetail =
+    fragment.querySelector(
+      '[data-route-detail="scene"]'
+    );
+
+  const orderDetail =
+    fragment.querySelector(
+      '[data-route-detail="order"]'
+    );
+
+  const primaryColor =
+    fragment.querySelector(
+      '[data-route-color="primary"]'
+    );
+
+  const secondaryColor =
+    fragment.querySelector(
+      '[data-route-color="secondary"]'
+    );
+
+  const backgroundColor =
+    fragment.querySelector(
+      '[data-route-color="background"]'
+    );
+
+  const panelColor =
+    fragment.querySelector(
+      '[data-route-color="panel"]'
+    );
+
+  const editButton =
+    fragment.querySelector(
+      '[data-route-action="edit"]'
+    );
+
+  const moreButton =
+    fragment.querySelector(
+      '[data-route-action="more"]'
+    );
+
+  card.dataset.routeId = route.id;
+
+  card.classList.toggle(
+    "is-inactive",
+    !route.is_enabled
+  );
+
+  color.style.background =
+    sanitizeRouteColor(
+      route.primary_color,
+      "#e8e8e8"
+    );
+
+  title.textContent =
+    route.name ||
+    "Rota sem nome";
+
+  code.textContent =
+    route.code ||
+    "sem_codigo";
+
+  description.textContent =
+    route.admin_description ||
+    route.description ||
+    "Nenhuma descrição cadastrada.";
+
+  secretBadge.textContent =
+    route.is_secret
+      ? "SECRETA"
+      : "";
+
+  initialBadge.textContent =
+    route.is_initially_available
+      ? "INICIAL"
+      : "";
+
+  stateBadge.textContent =
+    route.is_enabled
+      ? "ATIVA"
+      : "DESATIVADA";
+
+  const startScene =
+    getSceneById(
+      route.start_scene_id
+    );
+
+  sceneDetail.textContent =
+    startScene
+      ? `INÍCIO: ${
+          startScene.title ||
+          startScene.scene_key
+        }`
+      : "SEM CENA INICIAL";
+
+  orderDetail.textContent =
+    `ORDEM ${
+      Number(route.display_order) || 0
+    }`;
+
+  primaryColor.style.background =
+    sanitizeRouteColor(
+      route.primary_color,
+      "#e8e8e8"
+    );
+
+  primaryColor.title =
+    `Principal: ${
+      route.primary_color ||
+      "#e8e8e8"
+    }`;
+
+  secondaryColor.style.background =
+    sanitizeRouteColor(
+      route.secondary_color,
+      "#8a8a8a"
+    );
+
+  secondaryColor.title =
+    `Secundária: ${
+      route.secondary_color ||
+      "#8a8a8a"
+    }`;
+
+  backgroundColor.style.background =
+    sanitizeRouteColor(
+      route.background_color,
+      "#030303"
+    );
+
+  backgroundColor.title =
+    `Fundo: ${
+      route.background_color ||
+      "#030303"
+    }`;
+
+  panelColor.style.background =
+    sanitizeRouteColor(
+      route.panel_color,
+      "#0c0c0c"
+    );
+
+  panelColor.title =
+    `Painel: ${
+      route.panel_color ||
+      "#0c0c0c"
+    }`;
+
+  editButton.dataset.routeId =
+    route.id;
+
+  moreButton.dataset.routeId =
+    route.id;
+
+  return fragment;
+}
+
+
+function showRouteListMessage(
+  message,
+  type = ""
+) {
+  elements.routeListMessage.className =
+    "scene-list-message";
+
+  if (type) {
+    elements.routeListMessage.classList.add(
+      `is-${type}`
+    );
+  }
+
+  elements.routeListMessage.textContent =
+    message || "";
+}
+
+
+/* ==========================================================
+   CLIQUES DA LISTA
+   ========================================================== */
+
+function handleRouteListClick(event) {
+  const button = event.target.closest(
+    "[data-route-action]"
+  );
+
+  if (!button) {
+    return;
+  }
+
+  const routeId =
+    button.dataset.routeId;
+
+  if (!routeId) {
+    return;
+  }
+
+  switch (
+    button.dataset.routeAction
+  ) {
+    case "edit":
+      openEditRouteModal(routeId);
+      break;
+
+    case "more":
+      openRouteActionsModal(routeId);
+      break;
+  }
+}
+
+
+/* ==========================================================
+   FORMULÁRIO DA ROTA
+   ========================================================== */
+
+function openNewRouteModal() {
+  state.editingRouteId = null;
+
+  resetRouteForm();
+
+  elements.routeModalTitle.textContent =
+    "Nova rota";
+
+  elements.routeCode.disabled = false;
+
+  openRouteModal();
+}
+
+
+function openEditRouteModal(routeId) {
+  const route =
+    getRouteById(routeId);
+
+  if (!route) {
+    showRouteListMessage(
+      "A rota selecionada não foi encontrada.",
+      "error"
+    );
+
+    return;
+  }
+
+  state.editingRouteId = route.id;
+
+  fillRouteForm(route);
+
+  elements.routeModalTitle.textContent =
+    "Editar rota";
+
+  elements.routeCode.disabled = false;
+
+  openRouteModal();
+}
+
+
+function resetRouteForm() {
+  elements.routeForm.reset();
+
+  elements.routeId.value = "";
+
+  elements.routeDisplayOrder.value =
+    "10";
+
+  elements.routePrimaryColor.value =
+    "#e8e8e8";
+
+  elements.routePrimaryPicker.value =
+    "#e8e8e8";
+
+  elements.routeSecondaryColor.value =
+    "#8a8a8a";
+
+  elements.routeSecondaryPicker.value =
+    "#8a8a8a";
+
+  elements.routeBackgroundColor.value =
+    "#030303";
+
+  elements.routeBackgroundPicker.value =
+    "#030303";
+
+  elements.routePanelColor.value =
+    "#0c0c0c";
+
+  elements.routePanelPicker.value =
+    "#0c0c0c";
+
+  elements.routeEnabled.checked = true;
+  elements.routeSecret.checked = false;
+
+  elements.routeInitiallyAvailable.checked =
+    false;
+
+  elements.routeFormMessage.textContent =
+    "";
+
+  setRouteSaving(false);
+
+  renderRoutePreview();
+}
+
+
+function fillRouteForm(route) {
+  elements.routeId.value =
+    route.id;
+
+  elements.routeName.value =
+    route.name || "";
+
+  elements.routeCode.value =
+    route.code || "";
+
+  elements.routeDescription.value =
+    route.description || "";
+
+  elements.routeAdminDescription.value =
+    route.admin_description || "";
+
+  elements.routeStartScene.value =
+    route.start_scene_id || "";
+
+  elements.routeDisplayOrder.value =
+    String(
+      Number(route.display_order) || 0
+    );
+
+  setRouteColorField(
+    elements.routePrimaryColor,
+    elements.routePrimaryPicker,
+    route.primary_color,
+    "#e8e8e8"
+  );
+
+  setRouteColorField(
+    elements.routeSecondaryColor,
+    elements.routeSecondaryPicker,
+    route.secondary_color,
+    "#8a8a8a"
+  );
+
+  setRouteColorField(
+    elements.routeBackgroundColor,
+    elements.routeBackgroundPicker,
+    route.background_color,
+    "#030303"
+  );
+
+  setRouteColorField(
+    elements.routePanelColor,
+    elements.routePanelPicker,
+    route.panel_color,
+    "#0c0c0c"
+  );
+
+  elements.routeBackgroundImage.value =
+    route.background_image_url || "";
+
+  elements.routeEnabled.checked =
+    route.is_enabled === true;
+
+  elements.routeSecret.checked =
+    route.is_secret === true;
+
+  elements.routeInitiallyAvailable.checked =
+    route.is_initially_available === true;
+
+  elements.routeFormMessage.textContent =
+    "";
+
+  setRouteSaving(false);
+
+  renderRoutePreview();
+}
+
+
+function handleRouteNameInput() {
+  if (
+    state.editingRouteId ||
+    elements.routeCode.value.trim()
+  ) {
+    renderRoutePreview();
+    return;
+  }
+
+  elements.routeCode.value =
+    createRouteCode(
+      elements.routeName.value
+    );
+
+  renderRoutePreview();
+}
+
+
+function handleRouteCodeInput() {
+  const cursorPosition =
+    elements.routeCode.selectionStart;
+
+  elements.routeCode.value =
+    createRouteCode(
+      elements.routeCode.value
+    );
+
+  try {
+    elements.routeCode.setSelectionRange(
+      cursorPosition,
+      cursorPosition
+    );
+  } catch {
+    /*
+      Alguns navegadores não permitem alterar
+      a seleção durante determinados eventos.
+    */
+  }
+}
+
+
+function createRouteCode(value) {
+  return normalizeText(value)
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 100);
+}
+
+
+/* ==========================================================
+   CORES E PRÉ-VISUALIZAÇÃO
+   ========================================================== */
+
+function configureRouteColorEvents() {
+  const colorPairs = [
+    [
+      elements.routePrimaryPicker,
+      elements.routePrimaryColor
+    ],
+    [
+      elements.routeSecondaryPicker,
+      elements.routeSecondaryColor
+    ],
+    [
+      elements.routeBackgroundPicker,
+      elements.routeBackgroundColor
+    ],
+    [
+      elements.routePanelPicker,
+      elements.routePanelColor
+    ]
+  ];
+
+  colorPairs.forEach(
+    ([picker, textInput]) => {
+      picker.addEventListener(
+        "input",
+        () => {
+          textInput.value =
+            picker.value;
+
+          renderRoutePreview();
+        }
+      );
+
+      textInput.addEventListener(
+        "input",
+        () => {
+          const normalizedColor =
+            normalizeHexColor(
+              textInput.value
+            );
+
+          if (normalizedColor) {
+            picker.value =
+              normalizedColor;
+          }
+
+          renderRoutePreview();
+        }
+      );
+    }
+  );
+
+  elements.routeBackgroundImage.addEventListener(
+    "input",
+    renderRoutePreview
+  );
+
+  elements.routeName.addEventListener(
+    "input",
+    renderRoutePreview
+  );
+}
+
+
+function setRouteColorField(
+  textInput,
+  picker,
+  value,
+  fallback
+) {
+  const validColor =
+    normalizeHexColor(value) ||
+    fallback;
+
+  textInput.value =
+    validColor;
+
+  picker.value =
+    validColor;
+}
+
+
+function normalizeHexColor(value) {
+  const normalized =
+    String(value || "")
+      .trim()
+      .toLowerCase();
+
+  if (
+    /^#[0-9a-f]{6}$/.test(
+      normalized
+    )
+  ) {
+    return normalized;
+  }
+
+  if (
+    /^#[0-9a-f]{3}$/.test(
+      normalized
+    )
+  ) {
+    return (
+      "#" +
+      normalized
+        .slice(1)
+        .split("")
+        .map(character =>
+          character + character
+        )
+        .join("")
+    );
+  }
+
+  return null;
+}
+
+
+function sanitizeRouteColor(
+  value,
+  fallback
+) {
+  return (
+    normalizeHexColor(value) ||
+    fallback
+  );
+}
+
+
+function renderRoutePreview() {
+  const primaryColor =
+    sanitizeRouteColor(
+      elements.routePrimaryColor.value,
+      "#e8e8e8"
+    );
+
+  const secondaryColor =
+    sanitizeRouteColor(
+      elements.routeSecondaryColor.value,
+      "#8a8a8a"
+    );
+
+  const backgroundColor =
+    sanitizeRouteColor(
+      elements.routeBackgroundColor.value,
+      "#030303"
+    );
+
+  const panelColor =
+    sanitizeRouteColor(
+      elements.routePanelColor.value,
+      "#0c0c0c"
+    );
+
+  const backgroundImage =
+    elements.routeBackgroundImage.value
+      .trim();
+
+  elements.routePreview.style.color =
+    primaryColor;
+
+  elements.routePreview.style.backgroundColor =
+    backgroundColor;
+
+  elements.routePreview.style.borderColor =
+    secondaryColor;
+
+  elements.routePreview.style.backgroundImage =
+    backgroundImage &&
+    isValidHttpUrl(backgroundImage)
+      ? `linear-gradient(
+          rgba(0, 0, 0, 0.34),
+          rgba(0, 0, 0, 0.34)
+        ),
+        url("${backgroundImage}")`
+      : "";
+
+  const previewPanel =
+    elements.routePreview.querySelector(
+      ".route-preview__panel"
+    );
+
+  previewPanel.style.background =
+    panelColor;
+
+  previewPanel.style.borderColor =
+    secondaryColor;
+
+  elements.routePreviewName.textContent =
+    elements.routeName.value
+      .trim()
+      .toLocaleUpperCase("pt-BR") ||
+    "NOME DA ROTA";
+}
+
+
+/* ==========================================================
+   SALVAR ROTA
+   ========================================================== */
+
+async function handleRouteFormSubmit(event) {
+  event.preventDefault();
+
+  if (state.isSavingRoute) {
+    return;
+  }
+
+  clearRouteFormMessage();
+
+  try {
+    const routeData =
+      collectRouteFormData();
+
+    validateRouteData(routeData);
+
+    setRouteSaving(true);
+
+    if (state.editingRouteId) {
+      await updateRoute(
+        state.editingRouteId,
+        routeData
+      );
+    } else {
+      await createRoute(routeData);
+    }
+
+    await refreshRoutes();
+
+    populateRouteSelectors();
+    repopulateResponseRouteSelector();
+
+    applySceneFilters();
+    applyResponseFilters();
+
+    showRouteFormMessage(
+      "ROTA SALVA COM SUCESSO.",
+      "success"
+    );
+
+    window.setTimeout(() => {
+      closeRouteModal();
+    }, 450);
+  } catch (error) {
+    console.error(
+      "Erro ao salvar rota:",
+      error
+    );
+
+    showRouteFormMessage(
+      formatDatabaseError(error),
+      "error"
+    );
+  } finally {
+    setRouteSaving(false);
+  }
+}
+
+
+function collectRouteFormData() {
+  return {
+    game_id: state.game.id,
+
+    name:
+      elements.routeName.value
+        .trim(),
+
+    code:
+      createRouteCode(
+        elements.routeCode.value
+      ),
+
+    description:
+      emptyToNull(
+        elements.routeDescription.value
+      ),
+
+    admin_description:
+      emptyToNull(
+        elements.routeAdminDescription.value
+      ),
+
+    start_scene_id:
+      elements.routeStartScene.value ||
+      null,
+
+    display_order:
+      Number(
+        elements.routeDisplayOrder.value
+      ) || 0,
+
+    primary_color:
+      sanitizeRouteColor(
+        elements.routePrimaryColor.value,
+        "#e8e8e8"
+      ),
+
+    secondary_color:
+      sanitizeRouteColor(
+        elements.routeSecondaryColor.value,
+        "#8a8a8a"
+      ),
+
+    background_color:
+      sanitizeRouteColor(
+        elements.routeBackgroundColor.value,
+        "#030303"
+      ),
+
+    panel_color:
+      sanitizeRouteColor(
+        elements.routePanelColor.value,
+        "#0c0c0c"
+      ),
+
+    background_image_url:
+      emptyToNull(
+        elements.routeBackgroundImage.value
+      ),
+
+    is_enabled:
+      elements.routeEnabled.checked,
+
+    is_secret:
+      elements.routeSecret.checked,
+
+    is_initially_available:
+      elements.routeInitiallyAvailable.checked
+  };
+}
+
+
+function validateRouteData(routeData) {
+  if (!routeData.name) {
+    throw new Error(
+      "Informe o nome da rota."
+    );
+  }
+
+  if (!routeData.code) {
+    throw new Error(
+      "Informe o código interno da rota."
+    );
+  }
+
+  if (
+    routeData.background_image_url &&
+    !isValidHttpUrl(
+      routeData.background_image_url
+    )
+  ) {
+    throw new Error(
+      "A imagem de fundo precisa possuir um endereço HTTP ou HTTPS válido."
+    );
+  }
+}
+
+
+async function createRoute(routeData) {
+  const {
+    error
+  } = await state.client
+    .from("routes")
+    .insert(routeData);
+
+  if (error) {
+    throw error;
+  }
+}
+
+
+async function updateRoute(
+  routeId,
+  routeData
+) {
+  const {
+    error
+  } = await state.client
+    .from("routes")
+    .update(routeData)
+    .eq("id", routeId)
+    .eq("game_id", state.game.id);
+
+  if (error) {
+    throw error;
+  }
+}
+
+
+/* ==========================================================
+   ATUALIZAR ROTAS
+   ========================================================== */
+
+async function refreshRoutes() {
+  showRouteListMessage(
+    "ATUALIZANDO ROTAS..."
+  );
+
+  const {
+    data,
+    error
+  } = await state.client
+    .from("routes")
+    .select(`
+      id,
+      game_id,
+      code,
+      name,
+      description,
+      admin_description,
+      primary_color,
+      secondary_color,
+      background_color,
+      panel_color,
+      background_image_url,
+      start_scene_id,
+      is_secret,
+      is_initially_available,
+      is_enabled,
+      display_order,
+      created_at,
+      updated_at
+    `)
+    .eq("game_id", state.game.id)
+    .order("display_order", {
+      ascending: true
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  state.routes = data || [];
+
+  applyRouteFilters();
+}
+
+
+function repopulateResponseRouteSelector() {
+  elements.responseTargetRoute
+    .querySelectorAll(
+      'option[data-dynamic-route="true"]'
+    )
+    .forEach(option => option.remove());
+
+  state.routes.forEach(route => {
+    const option =
+      document.createElement("option");
+
+    option.value = route.id;
+
+    option.textContent =
+      route.is_secret
+        ? `${route.name} — secreta`
+        : route.name;
+
+    option.dataset.dynamicRoute =
+      "true";
+
+    elements.responseTargetRoute.appendChild(
+      option
+    );
+  });
+}
+
+
+/* ==========================================================
+   AÇÕES DA ROTA
+   ========================================================== */
+
+function openRouteActionsModal(routeId) {
+  const route =
+    getRouteById(routeId);
+
+  if (!route) {
+    showRouteListMessage(
+      "A rota selecionada não foi encontrada.",
+      "error"
+    );
+
+    return;
+  }
+
+  state.actionsRouteId = route.id;
+
+  elements.routeActionsTitle.textContent =
+    route.name ||
+    route.code ||
+    "Rota";
+
+  elements.toggleRouteButton
+    .querySelector("strong")
+    .textContent =
+      route.is_enabled
+        ? "DESATIVAR ROTA"
+        : "ATIVAR ROTA";
+
+  elements.toggleRouteButton
+    .querySelector("span")
+    .textContent =
+      route.is_enabled
+        ? "Impede temporariamente o uso da rota."
+        : "Permite novamente o uso da rota.";
+
+  elements.routeActionsModal.classList.remove(
+    "is-hidden"
+  );
+
+  updateBodyOverflow();
+}
+
+
+function closeRouteActionsModal() {
+  elements.routeActionsModal.classList.add(
+    "is-hidden"
+  );
+
+  state.actionsRouteId = null;
+
+  updateBodyOverflow();
+}
+
+
+function handleRouteActionsModalClick(event) {
+  const closeTarget =
+    event.target.closest(
+      "[data-close-route-actions]"
+    );
+
+  if (closeTarget) {
+    closeRouteActionsModal();
+  }
+}
+
+
+async function duplicateSelectedRoute() {
+  const routeId =
+    state.actionsRouteId;
+
+  if (!routeId) {
+    return;
+  }
+
+  setRouteActionButtonsDisabled(true);
+
+  try {
+    const {
+      data,
+      error
+    } = await state.client.rpc(
+      "duplicate_route",
+      {
+        p_route_id: routeId
+      }
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    closeRouteActionsModal();
+
+    await refreshRoutes();
+
+    populateRouteSelectors();
+    repopulateResponseRouteSelector();
+
+    const duplicatedRoute =
+      getRouteById(data);
+
+    if (duplicatedRoute) {
+      openEditRouteModal(
+        duplicatedRoute.id
+      );
+    }
+
+    showRouteListMessage(
+      "ROTA DUPLICADA COM SUCESSO.",
+      "success"
+    );
+  } catch (error) {
+    console.error(
+      "Erro ao duplicar rota:",
+      error
+    );
+
+    showRouteListMessage(
+      formatDatabaseError(error),
+      "error"
+    );
+  } finally {
+    setRouteActionButtonsDisabled(false);
+  }
+}
+
+
+async function toggleSelectedRoute() {
+  const route =
+    getRouteById(
+      state.actionsRouteId
+    );
+
+  if (!route) {
+    return;
+  }
+
+  setRouteActionButtonsDisabled(true);
+
+  try {
+    const {
+      error
+    } = await state.client
+      .from("routes")
+      .update({
+        is_enabled:
+          !route.is_enabled
+      })
+      .eq("id", route.id)
+      .eq("game_id", state.game.id);
+
+    if (error) {
+      throw error;
+    }
+
+    closeRouteActionsModal();
+
+    await refreshRoutes();
+
+    populateRouteSelectors();
+    repopulateResponseRouteSelector();
+
+    showRouteListMessage(
+      route.is_enabled
+        ? "ROTA DESATIVADA."
+        : "ROTA ATIVADA.",
+      "success"
+    );
+  } catch (error) {
+    console.error(
+      "Erro ao alterar rota:",
+      error
+    );
+
+    showRouteListMessage(
+      formatDatabaseError(error),
+      "error"
+    );
+  } finally {
+    setRouteActionButtonsDisabled(false);
+  }
+}
+
+
+async function deleteSelectedRoute() {
+  const route =
+    getRouteById(
+      state.actionsRouteId
+    );
+
+  if (!route) {
+    return;
+  }
+
+  const confirmed =
+    window.confirm(
+      `Excluir definitivamente a rota "${route.name}"?\n\n` +
+      "A exclusão será bloqueada caso existam cenas, caminhos ou partidas utilizando essa rota."
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  setRouteActionButtonsDisabled(true);
+
+  try {
+    const {
+      error
+    } = await state.client
+      .from("routes")
+      .delete()
+      .eq("id", route.id)
+      .eq("game_id", state.game.id);
+
+    if (error) {
+      throw error;
+    }
+
+    closeRouteActionsModal();
+
+    await refreshRoutes();
+
+    populateRouteSelectors();
+    repopulateResponseRouteSelector();
+
+    applySceneFilters();
+    applyResponseFilters();
+
+    showRouteListMessage(
+      "ROTA EXCLUÍDA COM SUCESSO.",
+      "success"
+    );
+  } catch (error) {
+    console.error(
+      "Erro ao excluir rota:",
+      error
+    );
+
+    showRouteListMessage(
+      formatDatabaseError(error),
+      "error"
+    );
+  } finally {
+    setRouteActionButtonsDisabled(false);
+  }
+}
+
+
+function setRouteActionButtonsDisabled(
+  disabled
+) {
+  elements.duplicateRouteButton.disabled =
+    disabled;
+
+  elements.toggleRouteButton.disabled =
+    disabled;
+
+  elements.deleteRouteButton.disabled =
+    disabled;
+}
+
+
+/* ==========================================================
+   CONTROLE DO MODAL
+   ========================================================== */
+
+function openRouteModal() {
+  elements.routeModal.classList.remove(
+    "is-hidden"
+  );
+
+  renderRoutePreview();
+
+  updateBodyOverflow();
+
+  window.setTimeout(() => {
+    elements.routeName.focus();
+  }, 30);
+}
+
+
+function closeRouteModal() {
+  if (state.isSavingRoute) {
+    return;
+  }
+
+  elements.routeModal.classList.add(
+    "is-hidden"
+  );
+
+  state.editingRouteId = null;
+
+  updateBodyOverflow();
+}
+
+
+function handleRouteModalClick(event) {
+  const closeTarget =
+    event.target.closest(
+      "[data-close-route-modal]"
+    );
+
+  if (closeTarget) {
+    closeRouteModal();
+  }
+}
+
+
+/* ==========================================================
+   ESTADO DO FORMULÁRIO
+   ========================================================== */
+
+function setRouteSaving(isSaving) {
+  state.isSavingRoute = isSaving;
+
+  elements.saveRouteButton.disabled =
+    isSaving;
+
+  elements.saveRouteButton.textContent =
+    isSaving
+      ? "SALVANDO..."
+      : "SALVAR ROTA";
+}
+
+
+function clearRouteFormMessage() {
+  elements.routeFormMessage.className =
+    "form-message";
+
+  elements.routeFormMessage.textContent =
+    "";
+}
+
+
+function showRouteFormMessage(
+  message,
+  type = ""
+) {
+  elements.routeFormMessage.className =
+    "form-message";
+
+  if (type) {
+    elements.routeFormMessage.classList.add(
+      `is-${type}`
+    );
+  }
+
+  elements.routeFormMessage.textContent =
+    message || "";
+}
+
+
+/* ==========================================================
+   BUSCA DE CENA
+   ========================================================== */
+
+function getSceneById(sceneId) {
+  return state.scenes.find(
+    scene => scene.id === sceneId
+  ) || null;
+}
 
 /* ==========================================================
    UTILIDADES
@@ -5702,9 +7509,51 @@ function formatMediaError(error) {
       "Uma das cenas ou rotas selecionadas possui um identificador inválido."
     );
   }
+
+     if (
+    lowerMessage.includes(
+      "routes_game_code_unique"
+    )
+  ) {
+    return (
+      "Já existe uma rota com esse código interno."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "duplicate_route"
+    )
+  ) {
+    return (
+      "Não foi possível duplicar a rota."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "rota não encontrada"
+    )
+  ) {
+    return (
+      "A rota selecionada não foi encontrada."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "informe o nome da rota"
+    ) ||
+    lowerMessage.includes(
+      "informe o código interno da rota"
+    ) ||
+    lowerMessage.includes(
+      "imagem de fundo precisa"
+    )
+  ) {
+    return message;
+  }
    
-  return message;
-}
 
 /* ==========================================================
    NAVEGAÇÃO ADMINISTRATIVA
@@ -5749,11 +7598,23 @@ function showAdminSection(section) {
     section !== "responses"
   );
 
+  elements.routesSection.classList.toggle(
+    "is-hidden",
+    section !== "routes"
+  );
+
+  if (section === "scenes") {
+    applySceneFilters();
+  }
+
   if (section === "responses") {
     applyResponseFilters();
   }
-}
 
+  if (section === "routes") {
+    applyRouteFilters();
+  }
+}
 
 /* ==========================================================
    SELETORES DOS CAMINHOS
@@ -5777,7 +7638,7 @@ function populateResponseSelectors() {
     }
   );
 
-  sortedScenes.forEach(scene => {
+   sortedScenes.forEach(scene => {
     const label =
       scene.title
         ? `${scene.title} — ${scene.scene_key}`
@@ -5802,15 +7663,7 @@ function populateResponseSelectors() {
     );
   });
 
-  state.routes.forEach(route => {
-    appendOption(
-      elements.responseTargetRoute,
-      route.id,
-      route.is_secret
-        ? `${route.name} — secreta`
-        : route.name
-    );
-  });
+  repopulateResponseRouteSelector();
 }
 
 function appendOption(
