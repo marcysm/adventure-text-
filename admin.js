@@ -6,6 +6,30 @@
 
 const GAME_SLUG = "artist-valley-adventure";
 
+const MEDIA_BUCKET = "adventure-media";
+
+const MEDIA_LIMITS = {
+  image: 6 * 1024 * 1024,
+  audio: 10 * 1024 * 1024
+};
+
+const ALLOWED_MEDIA_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "image/gif",
+  "audio/mpeg",
+  "audio/ogg",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/mp4"
+]);
+
+
+/* ==========================================================
+   ESTADO
+   ========================================================== */
+
 const state = {
   client: null,
 
@@ -24,8 +48,12 @@ const state = {
   blocks: [],
   editingBlockId: null,
 
+  mediaLibrary: [],
+  filteredMedia: [],
+
   isSaving: false,
-  isSavingBlock: false
+  isSavingBlock: false,
+  isUploadingMedia: false
 };
 
 const elements = {};
@@ -98,7 +126,9 @@ async function initializeAdminPanel() {
 
 function cacheElements() {
   elements.loading =
-    document.getElementById("admin-loading");
+    document.getElementById(
+      "admin-loading"
+    );
 
   elements.loadingMessage =
     document.getElementById(
@@ -111,13 +141,19 @@ function cacheElements() {
     );
 
   elements.adminName =
-    document.getElementById("admin-name");
+    document.getElementById(
+      "admin-name"
+    );
 
   elements.adminEmail =
-    document.getElementById("admin-email");
+    document.getElementById(
+      "admin-email"
+    );
 
   elements.logoutButton =
-    document.getElementById("logout-button");
+    document.getElementById(
+      "logout-button"
+    );
 
   elements.newSceneButton =
     document.getElementById(
@@ -125,16 +161,24 @@ function cacheElements() {
     );
 
   elements.sceneSearch =
-    document.getElementById("scene-search");
+    document.getElementById(
+      "scene-search"
+    );
 
   elements.routeFilter =
-    document.getElementById("route-filter");
+    document.getElementById(
+      "route-filter"
+    );
 
   elements.statusFilter =
-    document.getElementById("status-filter");
+    document.getElementById(
+      "status-filter"
+    );
 
   elements.sceneList =
-    document.getElementById("scene-list");
+    document.getElementById(
+      "scene-list"
+    );
 
   elements.sceneListMessage =
     document.getElementById(
@@ -142,10 +186,14 @@ function cacheElements() {
     );
 
   elements.totalScenes =
-    document.getElementById("total-scenes");
+    document.getElementById(
+      "total-scenes"
+    );
 
   elements.activeScenes =
-    document.getElementById("active-scenes");
+    document.getElementById(
+      "active-scenes"
+    );
 
   elements.inactiveScenes =
     document.getElementById(
@@ -163,7 +211,9 @@ function cacheElements() {
     );
 
   elements.sceneModal =
-    document.getElementById("scene-modal");
+    document.getElementById(
+      "scene-modal"
+    );
 
   elements.sceneModalTitle =
     document.getElementById(
@@ -171,16 +221,24 @@ function cacheElements() {
     );
 
   elements.sceneForm =
-    document.getElementById("scene-form");
+    document.getElementById(
+      "scene-form"
+    );
 
   elements.sceneId =
-    document.getElementById("scene-id");
+    document.getElementById(
+      "scene-id"
+    );
 
   elements.sceneTitle =
-    document.getElementById("scene-title");
+    document.getElementById(
+      "scene-title"
+    );
 
   elements.sceneKey =
-    document.getElementById("scene-key");
+    document.getElementById(
+      "scene-key"
+    );
 
   elements.sceneDescription =
     document.getElementById(
@@ -188,7 +246,9 @@ function cacheElements() {
     );
 
   elements.sceneRoute =
-    document.getElementById("scene-route");
+    document.getElementById(
+      "scene-route"
+    );
 
   elements.sceneFallback =
     document.getElementById(
@@ -211,7 +271,9 @@ function cacheElements() {
     );
 
   elements.allowRepeat =
-    document.getElementById("allow-repeat");
+    document.getElementById(
+      "allow-repeat"
+    );
 
   elements.allowInventory =
     document.getElementById(
@@ -224,7 +286,9 @@ function cacheElements() {
     );
 
   elements.allowMap =
-    document.getElementById("allow-map");
+    document.getElementById(
+      "allow-map"
+    );
 
   elements.sceneEnabled =
     document.getElementById(
@@ -416,9 +480,90 @@ function cacheElements() {
       "save-block-button"
     );
 
-  const missing = Object.entries(elements)
-    .filter(([, element]) => !element)
-    .map(([name]) => name);
+  elements.uploadMediaButton =
+    document.getElementById(
+      "upload-media-button"
+    );
+
+  elements.openMediaLibraryButton =
+    document.getElementById(
+      "open-media-library-button"
+    );
+
+  elements.mediaFileInput =
+    document.getElementById(
+      "media-file-input"
+    );
+
+  elements.mediaUploadStatus =
+    document.getElementById(
+      "media-upload-status"
+    );
+
+  elements.mediaUploadName =
+    document.getElementById(
+      "media-upload-name"
+    );
+
+  elements.mediaUploadPercentage =
+    document.getElementById(
+      "media-upload-percentage"
+    );
+
+  elements.mediaUploadProgress =
+    document.getElementById(
+      "media-upload-progress"
+    );
+
+  elements.mediaUploadMessage =
+    document.getElementById(
+      "media-upload-message"
+    );
+
+  elements.mediaLibraryModal =
+    document.getElementById(
+      "media-library-modal"
+    );
+
+  elements.mediaLibrarySearch =
+    document.getElementById(
+      "media-library-search"
+    );
+
+  elements.mediaLibraryType =
+    document.getElementById(
+      "media-library-type"
+    );
+
+  elements.mediaLibraryUploadButton =
+    document.getElementById(
+      "media-library-upload-button"
+    );
+
+  elements.mediaLibraryCount =
+    document.getElementById(
+      "media-library-count"
+    );
+
+  elements.mediaLibraryMessage =
+    document.getElementById(
+      "media-library-message"
+    );
+
+  elements.mediaLibraryList =
+    document.getElementById(
+      "media-library-list"
+    );
+
+  elements.mediaCardTemplate =
+    document.getElementById(
+      "media-card-template"
+    );
+
+  const missing =
+    Object.entries(elements)
+      .filter(([, element]) => !element)
+      .map(([name]) => name);
 
   if (missing.length > 0) {
     throw new Error(
@@ -563,6 +708,46 @@ function configureEvents() {
     handleBlockColorPickerInput
   );
 
+  elements.uploadMediaButton.addEventListener(
+    "click",
+    openMediaFileSelector
+  );
+
+  elements.openMediaLibraryButton.addEventListener(
+    "click",
+    openMediaLibrary
+  );
+
+  elements.mediaLibraryUploadButton.addEventListener(
+    "click",
+    openMediaFileSelector
+  );
+
+  elements.mediaFileInput.addEventListener(
+    "change",
+    handleMediaFileSelected
+  );
+
+  elements.mediaLibraryModal.addEventListener(
+    "click",
+    handleMediaLibraryModalClick
+  );
+
+  elements.mediaLibrarySearch.addEventListener(
+    "input",
+    applyMediaLibraryFilters
+  );
+
+  elements.mediaLibraryType.addEventListener(
+    "change",
+    applyMediaLibraryFilters
+  );
+
+  elements.mediaLibraryList.addEventListener(
+    "click",
+    handleMediaLibraryListClick
+  );
+
   document.addEventListener(
     "keydown",
     handleEscapeKey
@@ -571,6 +756,15 @@ function configureEvents() {
 
 function handleEscapeKey(event) {
   if (event.key !== "Escape") {
+    return;
+  }
+
+  if (
+    !elements.mediaLibraryModal.classList.contains(
+      "is-hidden"
+    )
+  ) {
+    closeMediaLibrary();
     return;
   }
 
@@ -946,7 +1140,7 @@ function getRouteById(routeId) {
 
 
 /* ==========================================================
-   FILTROS
+   FILTROS DE CENAS
    ========================================================== */
 
 function applySceneFilters() {
@@ -982,7 +1176,8 @@ function applySceneFilters() {
       let matchesRoute = true;
 
       if (routeValue === "none") {
-        matchesRoute = !scene.route_id;
+        matchesRoute =
+          !scene.route_id;
       } else if (routeValue) {
         matchesRoute =
           scene.route_id === routeValue;
@@ -1169,7 +1364,8 @@ function createSceneCard(scene) {
   );
 
   title.textContent =
-    scene.title || "Cena sem título";
+    scene.title ||
+    "Cena sem título";
 
   identifier.textContent =
     scene.scene_key;
@@ -1234,7 +1430,8 @@ function formatHelpMode(helpMode) {
     disabled: "DESATIVADA"
   };
 
-  return names[helpMode] || helpMode;
+  return names[helpMode] ||
+    helpMode;
 }
 
 function formatAllowedCommands(scene) {
@@ -1269,7 +1466,8 @@ function formatEndingType(endingType) {
     secret: "SECRETO"
   };
 
-  return names[endingType] || "NEUTRO";
+  return names[endingType] ||
+    "NEUTRO";
 }
 
 function showSceneListMessage(
@@ -1291,7 +1489,7 @@ function showSceneListMessage(
 
 
 /* ==========================================================
-   CLIQUES DA LISTA
+   CLIQUES DA LISTA DE CENAS
    ========================================================== */
 
 function handleSceneListClick(event) {
@@ -1362,7 +1560,8 @@ function openEditSceneModal(sceneId) {
   fillSceneForm(scene);
 
   elements.sceneModalTitle.textContent =
-    scene.title || "Editar cena";
+    scene.title ||
+    "Editar cena";
 
   elements.sceneKey.disabled = true;
 
@@ -1416,21 +1615,32 @@ function resetSceneForm() {
   elements.sceneHelpMode.value =
     "normal";
 
-  elements.allowRepeat.checked = true;
-  elements.allowInventory.checked = true;
-  elements.allowHistory.checked = true;
-  elements.allowMap.checked = false;
+  elements.allowRepeat.checked =
+    true;
 
-  elements.sceneEnabled.checked = true;
-  elements.sceneEnding.checked = false;
+  elements.allowInventory.checked =
+    true;
+
+  elements.allowHistory.checked =
+    true;
+
+  elements.allowMap.checked =
+    false;
+
+  elements.sceneEnabled.checked =
+    true;
+
+  elements.sceneEnding.checked =
+    false;
+
   elements.sceneEndingType.value =
     "neutral";
 
-  elements.sceneKey.disabled = false;
+  elements.sceneKey.disabled =
+    false;
 
   updateHelpModeInterface();
   updateEndingInterface();
-
   clearSceneFormMessage();
 }
 
@@ -1482,7 +1692,6 @@ function fillSceneForm(scene) {
 
   updateHelpModeInterface();
   updateEndingInterface();
-
   clearSceneFormMessage();
 }
 
@@ -1511,19 +1720,17 @@ function updateHelpModeInterface() {
     .forEach(paragraph => {
       paragraph.classList.toggle(
         "is-hidden",
-        paragraph.dataset.helpExplanation
-          !== currentMode
+        paragraph.dataset
+          .helpExplanation !==
+          currentMode
       );
     });
 }
 
 function updateEndingInterface() {
-  const isEnding =
-    elements.sceneEnding.checked;
-
   elements.endingTypeField.classList.toggle(
     "is-hidden",
-    !isEnding
+    !elements.sceneEnding.checked
   );
 }
 
@@ -1658,7 +1865,8 @@ function collectSceneFormData() {
         elements.sceneFallback.value
       ),
 
-    help_mode: helpMode,
+    help_mode:
+      helpMode,
 
     help_text:
       (
@@ -1682,7 +1890,8 @@ function collectSceneFormData() {
     allow_map:
       elements.allowMap.checked,
 
-    is_ending: isEnding,
+    is_ending:
+      isEnding,
 
     ending_type:
       isEnding
@@ -1762,7 +1971,10 @@ async function updateScene(
     .from("scenes")
     .update(editableData)
     .eq("id", sceneId)
-    .eq("game_id", state.game.id)
+    .eq(
+      "game_id",
+      state.game.id
+    )
     .select(`
       id,
       scene_key,
@@ -1780,18 +1992,20 @@ async function updateScene(
 function setSceneSaving(isSaving) {
   state.isSaving = isSaving;
 
-  const formControls =
-    elements.sceneForm.querySelectorAll(
+  elements.sceneForm
+    .querySelectorAll(
       "input, textarea, select, button"
-    );
-
-  formControls.forEach(control => {
-    control.disabled = isSaving;
-  });
+    )
+    .forEach(control => {
+      control.disabled =
+        isSaving;
+    });
 
   if (!isSaving) {
     elements.sceneKey.disabled =
-      Boolean(state.editingSceneId);
+      Boolean(
+        state.editingSceneId
+      );
   }
 
   elements.saveSceneButton.textContent =
@@ -1823,7 +2037,7 @@ function clearSceneFormMessage() {
 
 
 /* ==========================================================
-   MENU DE AÇÕES
+   MENU DE AÇÕES DA CENA
    ========================================================== */
 
 function openActionsModal(sceneId) {
@@ -1835,10 +2049,12 @@ function openActionsModal(sceneId) {
     return;
   }
 
-  state.actionsSceneId = scene.id;
+  state.actionsSceneId =
+    scene.id;
 
   elements.sceneActionsTitle.textContent =
-    scene.title || scene.scene_key;
+    scene.title ||
+    scene.scene_key;
 
   updateToggleSceneButton(scene);
 
@@ -1905,7 +2121,8 @@ async function duplicateSelectedScene() {
   const sourceScene =
     state.scenes.find(
       scene =>
-        scene.id === state.actionsSceneId
+        scene.id ===
+        state.actionsSceneId
     );
 
   if (!sourceScene) {
@@ -1922,10 +2139,14 @@ async function duplicateSelectedScene() {
       );
 
     const duplicateData = {
-      game_id: sourceScene.game_id,
-      route_id: sourceScene.route_id,
+      game_id:
+        sourceScene.game_id,
 
-      scene_key: duplicatedKey,
+      route_id:
+        sourceScene.route_id,
+
+      scene_key:
+        duplicatedKey,
 
       title:
         sourceScene.title
@@ -1962,7 +2183,8 @@ async function duplicateSelectedScene() {
       ending_type:
         sourceScene.ending_type,
 
-      is_enabled: false
+      is_enabled:
+        false
     };
 
     const duplicatedScene =
@@ -2000,13 +2222,17 @@ function createAvailableDuplicateKey(
   let candidate =
     `${originalKey}_copia`;
 
-  const existingKeys = new Set(
-    state.scenes.map(
-      scene => scene.scene_key
-    )
-  );
+  const existingKeys =
+    new Set(
+      state.scenes.map(
+        scene =>
+          scene.scene_key
+      )
+    );
 
-  while (existingKeys.has(candidate)) {
+  while (
+    existingKeys.has(candidate)
+  ) {
     index += 1;
 
     candidate =
@@ -2022,10 +2248,12 @@ function createAvailableDuplicateKey(
    ========================================================== */
 
 async function toggleSelectedScene() {
-  const scene = state.scenes.find(
-    item =>
-      item.id === state.actionsSceneId
-  );
+  const scene =
+    state.scenes.find(
+      item =>
+        item.id ===
+        state.actionsSceneId
+    );
 
   if (!scene) {
     return;
@@ -2044,7 +2272,10 @@ async function toggleSelectedScene() {
           !scene.is_enabled
       })
       .eq("id", scene.id)
-      .eq("game_id", state.game.id);
+      .eq(
+        "game_id",
+        state.game.id
+      );
 
     if (error) {
       throw error;
@@ -2074,9 +2305,11 @@ async function toggleSelectedScene() {
    ========================================================== */
 
 async function openBlocksModal(sceneId) {
-  const scene = state.scenes.find(
-    item => item.id === sceneId
-  );
+  const scene =
+    state.scenes.find(
+      item =>
+        item.id === sceneId
+    );
 
   if (!scene) {
     showSceneListMessage(
@@ -2087,12 +2320,15 @@ async function openBlocksModal(sceneId) {
     return;
   }
 
-  state.blocksSceneId = scene.id;
+  state.blocksSceneId =
+    scene.id;
+
   state.blocks = [];
   state.editingBlockId = null;
 
   elements.blocksModalTitle.textContent =
-    scene.title || "Cena sem título";
+    scene.title ||
+    "Cena sem título";
 
   elements.blocksSceneIdentifier.textContent =
     scene.scene_key;
@@ -2128,6 +2364,10 @@ function closeBlocksModal() {
   if (state.isSavingBlock) {
     return;
   }
+
+  elements.mediaLibraryModal.classList.add(
+    "is-hidden"
+  );
 
   elements.blockFormModal.classList.add(
     "is-hidden"
@@ -2185,13 +2425,22 @@ async function loadSceneBlocks() {
       created_at,
       updated_at
     `)
-    .eq("scene_id", requestedSceneId)
-    .order("display_order", {
-      ascending: true
-    })
-    .order("created_at", {
-      ascending: true
-    });
+    .eq(
+      "scene_id",
+      requestedSceneId
+    )
+    .order(
+      "display_order",
+      {
+        ascending: true
+      }
+    )
+    .order(
+      "created_at",
+      {
+        ascending: true
+      }
+    );
 
   if (
     requestedSceneId !==
@@ -2204,7 +2453,8 @@ async function loadSceneBlocks() {
     throw error;
   }
 
-  state.blocks = data || [];
+  state.blocks =
+    data || [];
 
   renderBlocksList();
 }
@@ -2212,7 +2462,8 @@ async function loadSceneBlocks() {
 function renderBlocksList() {
   elements.blocksList.replaceChildren();
 
-  const total = state.blocks.length;
+  const total =
+    state.blocks.length;
 
   elements.blocksTotal.textContent =
     total === 1
@@ -2264,7 +2515,10 @@ function renderBlocksList() {
   );
 }
 
-function createBlockCard(block, index) {
+function createBlockCard(
+  block,
+  index
+) {
   const fragment =
     elements.blockCardTemplate.content
       .cloneNode(true);
@@ -2299,225 +2553,66 @@ function createBlockCard(block, index) {
       ".block-card__preview"
     );
 
-  /*
-    Aceita tanto data-block-action
-    quanto data-action.
-  */
   const buttons =
     fragment.querySelectorAll(
-      "[data-block-action], [data-action]"
+      "[data-block-action]"
     );
 
-  if (!card) {
-    console.error(
-      "O template de blocos não possui .block-card."
-    );
-
-    return fragment;
-  }
-
-  card.dataset.blockId = block.id;
+  card.dataset.blockId =
+    block.id;
 
   card.classList.toggle(
     "is-inactive",
     !block.is_enabled
   );
 
-  if (position) {
-    position.textContent =
-      String(index + 1).padStart(
-        2,
-        "0"
-      );
-  }
+  position.textContent =
+    String(index + 1)
+      .padStart(2, "0");
 
-  if (type) {
-    type.textContent =
-      formatBlockType(
-        block.block_type
-      );
-  }
+  type.textContent =
+    formatBlockType(
+      block.block_type
+    );
 
-  if (animation) {
-    animation.textContent =
-      formatBlockAnimation(
-        block.animation_type
-      );
-  }
+  animation.textContent =
+    formatBlockAnimation(
+      block.animation_type
+    );
 
-  if (status) {
-    status.textContent =
-      block.is_enabled
-        ? "ATIVO"
-        : "DESATIVADO";
-  }
+  status.textContent =
+    block.is_enabled
+      ? "ATIVO"
+      : "DESATIVADO";
 
   buttons.forEach(button => {
-    /*
-      Descobre qual dos dois atributos
-      está sendo utilizado no HTML.
-    */
-    const action =
-      button.dataset.blockAction ||
-      button.dataset.action;
-
-    if (!action) {
-      return;
-    }
-
-    /*
-      Padroniza o atributo para o restante
-      do JavaScript.
-    */
-    button.dataset.blockAction =
-      action;
-
     button.dataset.blockId =
       block.id;
 
-    /*
-      Impede que botões dentro de formulários
-      tentem enviar o formulário.
-    */
     if (
-      button.tagName === "BUTTON" &&
-      !button.getAttribute("type")
+      button.dataset.blockAction ===
+      "up"
     ) {
-      button.type = "button";
-    }
-
-    if (action === "up") {
       button.disabled =
         index === 0;
     }
 
-    if (action === "down") {
+    if (
+      button.dataset.blockAction ===
+      "down"
+    ) {
       button.disabled =
         index ===
         state.blocks.length - 1;
     }
-
-    /*
-      Evento direto no botão.
-    */
-button.dataset.directBlockEvent =
-  "true";
-     
-    button.addEventListener(
-      "click",
-      async event => {
-        event.preventDefault();
-        event.stopPropagation();
-
-        await executeBlockAction(
-          action,
-          block.id,
-          button
-        );
-      }
-    );
   });
 
-  if (preview) {
-    renderBlockCardPreview(
-      preview,
-      block
-    );
-  }
+  renderBlockCardPreview(
+    preview,
+    block
+  );
 
   return fragment;
-}
-
-async function executeBlockAction(
-  action,
-  blockId,
-  button = null
-) {
-  if (!blockId) {
-    console.error(
-      "Ação de bloco sem blockId:",
-      action
-    );
-
-    return;
-  }
-
-  /*
-    Editar não precisa bloquear o botão,
-    pois apenas abre o formulário.
-  */
-  if (
-    button &&
-    action !== "edit"
-  ) {
-    button.disabled = true;
-  }
-
-  try {
-    switch (action) {
-      case "up":
-        await moveBlock(
-          blockId,
-          "up"
-        );
-        break;
-
-      case "down":
-        await moveBlock(
-          blockId,
-          "down"
-        );
-        break;
-
-      case "edit":
-        openEditBlockModal(
-          blockId
-        );
-        break;
-
-      case "duplicate":
-        await duplicateBlock(
-          blockId
-        );
-        break;
-
-      case "toggle":
-        await toggleBlock(
-          blockId
-        );
-        break;
-
-      case "delete":
-        await deleteBlock(
-          blockId
-        );
-        break;
-
-      default:
-        console.warn(
-          "Ação de bloco desconhecida:",
-          action
-        );
-    }
-  } catch (error) {
-    console.error(
-      `Erro ao executar ação "${action}":`,
-      error
-    );
-
-    showBlocksMessage(
-      formatDatabaseError(error),
-      "error"
-    );
-  } finally {
-    if (
-      button &&
-      button.isConnected &&
-      action !== "edit"
-    ) {
-      button.disabled = false;
-    }
-  }
 }
 
 function formatBlockType(blockType) {
@@ -2533,7 +2628,8 @@ function formatBlockType(blockType) {
     audio: "ÁUDIO"
   };
 
-  return names[blockType] || blockType;
+  return names[blockType] ||
+    blockType;
 }
 
 function formatBlockAnimation(
@@ -2581,6 +2677,7 @@ function renderBlockCardPreview(
       container.appendChild(
         paragraph
       );
+
       break;
     }
 
@@ -2597,7 +2694,10 @@ function renderBlockCardPreview(
           block.text_color;
       }
 
-      container.appendChild(ascii);
+      container.appendChild(
+        ascii
+      );
+
       break;
     }
 
@@ -2613,11 +2713,14 @@ function renderBlockCardPreview(
       const image =
         document.createElement("img");
 
-      image.src = block.media_url;
+      image.src =
+        block.media_url;
+
       image.alt =
         block.alt_text || "";
 
-      image.loading = "lazy";
+      image.loading =
+        "lazy";
 
       if (
         block.block_type ===
@@ -2627,7 +2730,10 @@ function renderBlockCardPreview(
           "pixelated";
       }
 
-      container.appendChild(image);
+      container.appendChild(
+        image
+      );
+
       break;
     }
 
@@ -2643,10 +2749,16 @@ function renderBlockCardPreview(
         document.createElement("audio");
 
       audio.controls = true;
-      audio.preload = "metadata";
-      audio.src = block.media_url;
+      audio.preload =
+        "metadata";
 
-      container.appendChild(audio);
+      audio.src =
+        block.media_url;
+
+      container.appendChild(
+        audio
+      );
+
       break;
     }
 
@@ -2660,6 +2772,7 @@ function renderBlockCardPreview(
       container.appendChild(
         divider
       );
+
       break;
     }
 
@@ -2692,9 +2805,10 @@ function showBlocksMessage(
    ========================================================== */
 
 async function handleBlocksListClick(event) {
-  const button = event.target.closest(
-    "[data-block-action], [data-action]"
-  );
+  const button =
+    event.target.closest(
+      "[data-block-action]"
+    );
 
   if (!button) {
     return;
@@ -2704,8 +2818,7 @@ async function handleBlocksListClick(event) {
   event.stopPropagation();
 
   const action =
-    button.dataset.blockAction ||
-    button.dataset.action;
+    button.dataset.blockAction;
 
   const blockId =
     button.dataset.blockId ||
@@ -2714,35 +2827,66 @@ async function handleBlocksListClick(event) {
     )?.dataset.blockId;
 
   if (!action || !blockId) {
+    return;
+  }
+
+  button.disabled = true;
+
+  try {
+    switch (action) {
+      case "up":
+        await moveBlock(
+          blockId,
+          "up"
+        );
+        break;
+
+      case "down":
+        await moveBlock(
+          blockId,
+          "down"
+        );
+        break;
+
+      case "edit":
+        openEditBlockModal(
+          blockId
+        );
+        break;
+
+      case "duplicate":
+        await duplicateBlock(
+          blockId
+        );
+        break;
+
+      case "toggle":
+        await toggleBlock(
+          blockId
+        );
+        break;
+
+      case "delete":
+        await deleteBlock(
+          blockId
+        );
+        break;
+    }
+  } catch (error) {
     console.error(
-      "Botão de bloco incompleto:",
-      {
-        action,
-        blockId,
-        button
-      }
+      "Erro na ação do bloco:",
+      error
     );
 
-    return;
+    showBlocksMessage(
+      formatDatabaseError(error),
+      "error"
+    );
+  } finally {
+    if (button.isConnected) {
+      button.disabled = false;
+    }
   }
-
-  /*
-    Caso o botão já tenha recebido o evento
-    direto em createBlockCard, não executamos
-    novamente pela lista.
-  */
-  if (
-    button.dataset.directBlockEvent ===
-    "true"
-  ) {
-    return;
-  }
-
-  await executeBlockAction(
-    action,
-    blockId,
-    button
-  );
 }
 
 
@@ -2777,9 +2921,11 @@ function openNewBlockModal() {
 }
 
 function openEditBlockModal(blockId) {
-  const block = state.blocks.find(
-    item => item.id === blockId
-  );
+  const block =
+    state.blocks.find(
+      item =>
+        item.id === blockId
+    );
 
   if (!block) {
     showBlocksMessage(
@@ -2790,7 +2936,8 @@ function openEditBlockModal(blockId) {
     return;
   }
 
-  state.editingBlockId = block.id;
+  state.editingBlockId =
+    block.id;
 
   fillBlockForm(block);
 
@@ -2812,9 +2959,16 @@ function openEditBlockModal(blockId) {
 }
 
 function closeBlockFormModal() {
-  if (state.isSavingBlock) {
+  if (
+    state.isSavingBlock ||
+    state.isUploadingMedia
+  ) {
     return;
   }
+
+  elements.mediaLibraryModal.classList.add(
+    "is-hidden"
+  );
 
   elements.blockFormModal.classList.add(
     "is-hidden"
@@ -2825,9 +2979,7 @@ function closeBlockFormModal() {
   updateBodyOverflow();
 }
 
-function handleBlockFormModalClick(
-  event
-) {
+function handleBlockFormModalClick(event) {
   if (
     event.target.closest(
       "[data-close-block-form]"
@@ -2841,20 +2993,32 @@ function resetBlockForm() {
   elements.blockForm.reset();
 
   elements.blockId.value = "";
-  elements.blockType.value = "text";
+
+  elements.blockType.value =
+    "text";
+
   elements.blockAnimation.value =
     "none";
 
-  elements.blockContent.value = "";
-  elements.blockMediaUrl.value = "";
-  elements.blockAltText.value = "";
+  elements.blockContent.value =
+    "";
 
-  elements.blockTextColor.value = "";
+  elements.blockMediaUrl.value =
+    "";
+
+  elements.blockAltText.value =
+    "";
+
+  elements.blockTextColor.value =
+    "";
+
   elements.blockColorPicker.value =
     "#e8e8e8";
 
   elements.blockEnabled.checked =
     true;
+
+  resetMediaUploadStatus();
 
   updateBlockFormInterface();
   clearBlockFormMessage();
@@ -2892,6 +3056,8 @@ function fillBlockForm(block) {
 
   elements.blockEnabled.checked =
     block.is_enabled === true;
+
+  resetMediaUploadStatus();
 
   updateBlockFormInterface();
   clearBlockFormMessage();
@@ -2950,7 +3116,8 @@ function updateBlockFormInterface() {
     elements.blockContentHelp.textContent =
       "Espaços e quebras de linha serão preservados.";
   } else if (
-    blockType === "system_message"
+    blockType ===
+    "system_message"
   ) {
     elements.blockContentHelp.textContent =
       "Será exibido como uma mensagem técnica do terminal.";
@@ -3030,7 +3197,8 @@ function renderBlockFormPreview() {
         "block-preview__title";
 
       preview.textContent =
-        content || "Título da cena";
+        content ||
+        "Título da cena";
       break;
 
     case "text":
@@ -3086,16 +3254,35 @@ function renderBlockFormPreview() {
       preview.className =
         "block-preview__image";
 
-      preview.src = mediaUrl;
-      preview.alt = altText;
+      preview.src =
+        mediaUrl;
+
+      preview.alt =
+        altText;
 
       if (
-        blockType === "pixel_art"
+        blockType ===
+        "pixel_art"
       ) {
         preview.classList.add(
           "block-preview__pixel"
         );
       }
+
+      preview.addEventListener(
+        "error",
+        () => {
+          preview.replaceWith(
+            createPreviewPlaceholder(
+              "Não foi possível carregar esta imagem."
+            )
+          );
+        },
+        {
+          once: true
+        }
+      );
+
       break;
 
     case "audio":
@@ -3112,8 +3299,11 @@ function renderBlockFormPreview() {
         document.createElement("audio");
 
       preview.controls = true;
-      preview.preload = "metadata";
-      preview.src = mediaUrl;
+      preview.preload =
+        "metadata";
+
+      preview.src =
+        mediaUrl;
       break;
 
     case "divider":
@@ -3141,7 +3331,8 @@ function renderBlockFormPreview() {
       "ascii"
     ].includes(blockType)
   ) {
-    preview.style.color = textColor;
+    preview.style.color =
+      textColor;
   }
 
   elements.blockPreview.appendChild(
@@ -3149,16 +3340,15 @@ function renderBlockFormPreview() {
   );
 }
 
-function createPreviewPlaceholder(
-  text
-) {
+function createPreviewPlaceholder(text) {
   const paragraph =
     document.createElement("p");
 
   paragraph.className =
     "block-preview__placeholder";
 
-  paragraph.textContent = text;
+  paragraph.textContent =
+    text;
 
   return paragraph;
 }
@@ -3168,13 +3358,12 @@ function createPreviewPlaceholder(
    SALVAR BLOCO
    ========================================================== */
 
-async function handleBlockFormSubmit(
-  event
-) {
+async function handleBlockFormSubmit(event) {
   event.preventDefault();
 
   if (
     state.isSavingBlock ||
+    state.isUploadingMedia ||
     !state.blocksSceneId
   ) {
     return;
@@ -3184,7 +3373,9 @@ async function handleBlockFormSubmit(
     collectBlockFormData();
 
   const validationError =
-    validateBlockData(blockData);
+    validateBlockData(
+      blockData
+    );
 
   if (validationError) {
     showBlockFormMessage(
@@ -3208,7 +3399,9 @@ async function handleBlockFormSubmit(
         blockData
       );
     } else {
-      await createBlock(blockData);
+      await createBlock(
+        blockData
+      );
     }
 
     await normalizeSceneBlockOrder(
@@ -3340,7 +3533,7 @@ function validateBlockData(blockData) {
     !blockData.media_url
   ) {
     return (
-      "Informe o endereço da mídia."
+      "Informe ou envie a mídia."
     );
   }
 
@@ -3373,9 +3566,13 @@ async function createBlock(blockData) {
   const existingOrders =
     state.blocks
       .map(block =>
-        Number(block.display_order)
+        Number(
+          block.display_order
+        )
       )
-      .filter(Number.isFinite);
+      .filter(
+        Number.isFinite
+      );
 
   const nextOrder =
     existingOrders.length === 0
@@ -3391,7 +3588,8 @@ async function createBlock(blockData) {
     .from("scene_blocks")
     .insert({
       ...blockData,
-      display_order: nextOrder
+      display_order:
+        nextOrder
     })
     .select("id")
     .single();
@@ -3434,14 +3632,16 @@ async function updateBlock(
 }
 
 function setBlockSaving(isSaving) {
-  state.isSavingBlock = isSaving;
+  state.isSavingBlock =
+    isSaving;
 
   elements.blockForm
     .querySelectorAll(
       "input, textarea, select, button"
     )
     .forEach(control => {
-      control.disabled = isSaving;
+      control.disabled =
+        isSaving;
     });
 
   elements.saveBlockButton.textContent =
@@ -3473,7 +3673,7 @@ function clearBlockFormMessage() {
 
 
 /* ==========================================================
-   NORMALIZAR ORDEM DOS BLOCOS
+   ORDEM DOS BLOCOS
    ========================================================== */
 
 async function normalizeSceneBlockOrder(
@@ -3488,7 +3688,8 @@ async function normalizeSceneBlockOrder(
   } = await state.client.rpc(
     "normalize_scene_block_order",
     {
-      p_scene_id: sceneId
+      p_scene_id:
+        sceneId
     }
   );
 
@@ -3496,11 +3697,6 @@ async function normalizeSceneBlockOrder(
     throw error;
   }
 }
-
-
-/* ==========================================================
-   REORDENAR BLOCOS
-   ========================================================== */
 
 async function moveBlock(
   blockId,
@@ -3522,8 +3718,11 @@ async function moveBlock(
   } = await state.client.rpc(
     "move_scene_block",
     {
-      p_block_id: blockId,
-      p_direction: direction
+      p_block_id:
+        blockId,
+
+      p_direction:
+        direction
     }
   );
 
@@ -3540,13 +3739,15 @@ async function moveBlock(
 
 
 /* ==========================================================
-   DUPLICAR BLOCO
+   DUPLICAR, ATIVAR E EXCLUIR BLOCO
    ========================================================== */
 
 async function duplicateBlock(blockId) {
-  const block = state.blocks.find(
-    item => item.id === blockId
-  );
+  const block =
+    state.blocks.find(
+      item =>
+        item.id === blockId
+    );
 
   if (!block) {
     return;
@@ -3561,12 +3762,23 @@ async function duplicateBlock(blockId) {
   } = await state.client
     .from("scene_blocks")
     .insert({
-      scene_id: block.scene_id,
-      block_type: block.block_type,
-      content: block.content,
-      media_url: block.media_url,
-      alt_text: block.alt_text,
-      text_color: block.text_color,
+      scene_id:
+        block.scene_id,
+
+      block_type:
+        block.block_type,
+
+      content:
+        block.content,
+
+      media_url:
+        block.media_url,
+
+      alt_text:
+        block.alt_text,
+
+      text_color:
+        block.text_color,
 
       animation_type:
         block.animation_type,
@@ -3576,7 +3788,8 @@ async function duplicateBlock(blockId) {
           block.display_order
         ) + 5,
 
-      is_enabled: false
+      is_enabled:
+        false
     });
 
   if (error) {
@@ -3590,15 +3803,12 @@ async function duplicateBlock(blockId) {
   await loadSceneBlocks();
 }
 
-
-/* ==========================================================
-   ATIVAR OU DESATIVAR BLOCO
-   ========================================================== */
-
 async function toggleBlock(blockId) {
-  const block = state.blocks.find(
-    item => item.id === blockId
-  );
+  const block =
+    state.blocks.find(
+      item =>
+        item.id === blockId
+    );
 
   if (!block) {
     return;
@@ -3631,24 +3841,22 @@ async function toggleBlock(blockId) {
   await loadSceneBlocks();
 }
 
-
-/* ==========================================================
-   EXCLUIR BLOCO
-   ========================================================== */
-
 async function deleteBlock(blockId) {
-  const block = state.blocks.find(
-    item => item.id === blockId
-  );
+  const block =
+    state.blocks.find(
+      item =>
+        item.id === blockId
+    );
 
   if (!block) {
     return;
   }
 
-  const confirmed = window.confirm(
-    "Excluir este bloco permanentemente?\n\n" +
-    "Essa ação não poderá ser desfeita."
-  );
+  const confirmed =
+    window.confirm(
+      "Excluir este bloco permanentemente?\n\n" +
+      "Essa ação não poderá ser desfeita."
+    );
 
   if (!confirmed) {
     return;
@@ -3682,7 +3890,1167 @@ async function deleteBlock(blockId) {
 
 
 /* ==========================================================
-   UTILIDADES DE INTERFACE
+   SELEÇÃO E VALIDAÇÃO DE MÍDIA
+   ========================================================== */
+
+function openMediaFileSelector() {
+  if (state.isUploadingMedia) {
+    return;
+  }
+
+  elements.mediaFileInput.value =
+    "";
+
+  elements.mediaFileInput.click();
+}
+
+async function handleMediaFileSelected(event) {
+  const file =
+    event.target.files?.[0];
+
+  if (!file) {
+    return;
+  }
+
+  const validationError =
+    validateMediaFile(file);
+
+  if (validationError) {
+    showMediaUploadStatus(
+      file.name,
+      0,
+      validationError,
+      true
+    );
+
+    return;
+  }
+
+  await uploadMediaFile(file);
+}
+
+function validateMediaFile(file) {
+  if (
+    !ALLOWED_MEDIA_TYPES.has(
+      file.type
+    )
+  ) {
+    return (
+      "Formato não aceito. Use PNG, JPG, WEBP, GIF, " +
+      "MP3, OGG, WAV ou M4A."
+    );
+  }
+
+  const isAudio =
+    file.type.startsWith(
+      "audio/"
+    );
+
+  const maximumSize =
+    isAudio
+      ? MEDIA_LIMITS.audio
+      : MEDIA_LIMITS.image;
+
+  if (file.size > maximumSize) {
+    return isAudio
+      ? "O áudio deve possuir no máximo 10 MB."
+      : "A imagem deve possuir no máximo 6 MB.";
+  }
+
+  return null;
+}
+
+
+/* ==========================================================
+   UPLOAD DE MÍDIA
+   ========================================================== */
+
+async function uploadMediaFile(file) {
+  if (
+    !state.client ||
+    !state.game ||
+    !state.user
+  ) {
+    showMediaUploadStatus(
+      file.name,
+      0,
+      "O painel ainda não terminou de carregar.",
+      true
+    );
+
+    return;
+  }
+
+  state.isUploadingMedia =
+    true;
+
+  setMediaButtonsDisabled(
+    true
+  );
+
+  showMediaUploadStatus(
+    file.name,
+    10,
+    "Preparando arquivo..."
+  );
+
+  let uploadedPath = null;
+
+  try {
+    const mediaType =
+      inferMediaType(file);
+
+    const storagePath =
+      createMediaStoragePath(
+        file,
+        mediaType
+      );
+
+    showMediaUploadStatus(
+      file.name,
+      35,
+      "Enviando para o Supabase Storage..."
+    );
+
+    const {
+      data: uploadData,
+      error: uploadError
+    } = await state.client.storage
+      .from(MEDIA_BUCKET)
+      .upload(
+        storagePath,
+        file,
+        {
+          cacheControl:
+            "3600",
+
+          contentType:
+            file.type,
+
+          upsert:
+            false
+        }
+      );
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    uploadedPath =
+      uploadData.path;
+
+    showMediaUploadStatus(
+      file.name,
+      70,
+      "Gerando endereço público..."
+    );
+
+    const {
+      data: publicUrlData
+    } = state.client.storage
+      .from(MEDIA_BUCKET)
+      .getPublicUrl(
+        uploadData.path
+      );
+
+    const publicUrl =
+      publicUrlData?.publicUrl;
+
+    if (!publicUrl) {
+      throw new Error(
+        "Não foi possível gerar o endereço público."
+      );
+    }
+
+    showMediaUploadStatus(
+      file.name,
+      85,
+      "Registrando na biblioteca..."
+    );
+
+    const {
+      data: mediaRecord,
+      error: recordError
+    } = await state.client
+      .from("media_library")
+      .insert({
+        game_id:
+          state.game.id,
+
+        uploaded_by:
+          state.user.id,
+
+        storage_bucket:
+          MEDIA_BUCKET,
+
+        storage_path:
+          uploadData.path,
+
+        original_name:
+          file.name,
+
+        display_name:
+          removeFileExtension(
+            file.name
+          ),
+
+        media_type:
+          mediaType,
+
+        mime_type:
+          file.type,
+
+        size_bytes:
+          file.size,
+
+        public_url:
+          publicUrl
+      })
+      .select(`
+        id,
+        game_id,
+        storage_bucket,
+        storage_path,
+        original_name,
+        display_name,
+        media_type,
+        mime_type,
+        size_bytes,
+        public_url,
+        alt_text,
+        created_at
+      `)
+      .single();
+
+    if (recordError) {
+      throw recordError;
+    }
+
+    elements.blockMediaUrl.value =
+      mediaRecord.public_url;
+
+    if (
+      [
+        "image",
+        "pixel_art"
+      ].includes(
+        elements.blockType.value
+      ) &&
+      !elements.blockAltText.value.trim()
+    ) {
+      elements.blockAltText.value =
+        mediaRecord.display_name ||
+        removeFileExtension(
+          mediaRecord.original_name
+        );
+    }
+
+    state.mediaLibrary =
+      state.mediaLibrary.filter(
+        media =>
+          media.id !==
+          mediaRecord.id
+      );
+
+    state.mediaLibrary.unshift(
+      mediaRecord
+    );
+
+    showMediaUploadStatus(
+      file.name,
+      100,
+      "Arquivo enviado com sucesso."
+    );
+
+    renderBlockFormPreview();
+
+    if (
+      !elements.mediaLibraryModal.classList.contains(
+        "is-hidden"
+      )
+    ) {
+      applyMediaLibraryFilters();
+    }
+  } catch (error) {
+    console.error(
+      "Erro no envio da mídia:",
+      error
+    );
+
+    if (uploadedPath) {
+      try {
+        await state.client.storage
+          .from(MEDIA_BUCKET)
+          .remove([
+            uploadedPath
+          ]);
+      } catch (cleanupError) {
+        console.warn(
+          "Não foi possível limpar o arquivo órfão:",
+          cleanupError
+        );
+      }
+    }
+
+    showMediaUploadStatus(
+      file.name,
+      100,
+      formatMediaError(error),
+      true
+    );
+  } finally {
+    state.isUploadingMedia =
+      false;
+
+    setMediaButtonsDisabled(
+      false
+    );
+  }
+}
+
+function inferMediaType(file) {
+  if (
+    file.type ===
+    "image/gif"
+  ) {
+    return "gif";
+  }
+
+  if (
+    file.type.startsWith(
+      "audio/"
+    )
+  ) {
+    return "audio";
+  }
+
+  if (
+    elements.blockType.value ===
+    "pixel_art"
+  ) {
+    return "pixel_art";
+  }
+
+  return "image";
+}
+
+function createMediaStoragePath(
+  file,
+  mediaType
+) {
+  const now =
+    new Date();
+
+  const year =
+    String(
+      now.getFullYear()
+    );
+
+  const month =
+    String(
+      now.getMonth() + 1
+    ).padStart(2, "0");
+
+  const randomId =
+    typeof crypto.randomUUID ===
+    "function"
+      ? crypto.randomUUID()
+      : generateFallbackUuid();
+
+  const extension =
+    getFileExtension(
+      file.name
+    ) ||
+    extensionFromMimeType(
+      file.type
+    );
+
+  const safeName =
+    sanitizeFileName(
+      removeFileExtension(
+        file.name
+      )
+    ).slice(0, 60) ||
+    "arquivo";
+
+  return [
+    state.game.slug,
+    mediaType,
+    year,
+    month,
+    `${safeName}-${randomId}.${extension}`
+  ].join("/");
+}
+
+function generateFallbackUuid() {
+  return [
+    Date.now().toString(36),
+    Math.random()
+      .toString(36)
+      .slice(2, 12)
+  ].join("-");
+}
+
+function sanitizeFileName(value) {
+  return String(value || "")
+    .toLocaleLowerCase("pt-BR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function getFileExtension(fileName) {
+  const parts =
+    String(
+      fileName || ""
+    ).split(".");
+
+  return parts.length > 1
+    ? parts.pop()
+      .toLowerCase()
+    : "";
+}
+
+function removeFileExtension(fileName) {
+  return String(
+    fileName || ""
+  ).replace(
+    /\.[^.]+$/,
+    ""
+  );
+}
+
+function extensionFromMimeType(
+  mimeType
+) {
+  const extensions = {
+    "image/png":
+      "png",
+
+    "image/jpeg":
+      "jpg",
+
+    "image/webp":
+      "webp",
+
+    "image/gif":
+      "gif",
+
+    "audio/mpeg":
+      "mp3",
+
+    "audio/ogg":
+      "ogg",
+
+    "audio/wav":
+      "wav",
+
+    "audio/x-wav":
+      "wav",
+
+    "audio/mp4":
+      "m4a"
+  };
+
+  return extensions[mimeType] ||
+    "bin";
+}
+
+
+/* ==========================================================
+   ESTADO VISUAL DO UPLOAD
+   ========================================================== */
+
+function showMediaUploadStatus(
+  fileName,
+  percentage,
+  message,
+  isError = false
+) {
+  elements.mediaUploadStatus.classList.remove(
+    "is-hidden",
+    "is-error"
+  );
+
+  if (isError) {
+    elements.mediaUploadStatus.classList.add(
+      "is-error"
+    );
+  }
+
+  const safePercentage =
+    Math.max(
+      0,
+      Math.min(
+        100,
+        percentage
+      )
+    );
+
+  elements.mediaUploadName.textContent =
+    fileName ||
+    "Arquivo";
+
+  elements.mediaUploadPercentage.textContent =
+    `${safePercentage}%`;
+
+  elements.mediaUploadProgress.style.width =
+    `${safePercentage}%`;
+
+  elements.mediaUploadMessage.textContent =
+    message || "";
+}
+
+function resetMediaUploadStatus() {
+  elements.mediaUploadStatus.classList.add(
+    "is-hidden"
+  );
+
+  elements.mediaUploadStatus.classList.remove(
+    "is-error"
+  );
+
+  elements.mediaUploadName.textContent =
+    "";
+
+  elements.mediaUploadPercentage.textContent =
+    "0%";
+
+  elements.mediaUploadProgress.style.width =
+    "0%";
+
+  elements.mediaUploadMessage.textContent =
+    "";
+}
+
+function setMediaButtonsDisabled(
+  disabled
+) {
+  elements.uploadMediaButton.disabled =
+    disabled;
+
+  elements.mediaLibraryUploadButton.disabled =
+    disabled;
+
+  elements.openMediaLibraryButton.disabled =
+    disabled;
+}
+
+
+/* ==========================================================
+   BIBLIOTECA DE MÍDIAS
+   ========================================================== */
+
+async function openMediaLibrary() {
+  elements.mediaLibraryModal.classList.remove(
+    "is-hidden"
+  );
+
+  document.body.style.overflow =
+    "hidden";
+
+  try {
+    await loadMediaLibrary();
+  } catch (error) {
+    console.error(
+      "Erro ao carregar a biblioteca:",
+      error
+    );
+
+    setMediaLibraryMessage(
+      formatDatabaseError(error)
+    );
+  }
+}
+
+function closeMediaLibrary() {
+  if (state.isUploadingMedia) {
+    return;
+  }
+
+  elements.mediaLibraryModal.classList.add(
+    "is-hidden"
+  );
+
+  updateBodyOverflow();
+}
+
+function handleMediaLibraryModalClick(event) {
+  if (
+    event.target.closest(
+      "[data-close-media-library]"
+    )
+  ) {
+    closeMediaLibrary();
+  }
+}
+
+async function loadMediaLibrary() {
+  setMediaLibraryMessage(
+    "CARREGANDO ARQUIVOS..."
+  );
+
+  const {
+    data,
+    error
+  } = await state.client
+    .from("media_library")
+    .select(`
+      id,
+      game_id,
+      storage_bucket,
+      storage_path,
+      original_name,
+      display_name,
+      media_type,
+      mime_type,
+      size_bytes,
+      public_url,
+      alt_text,
+      created_at
+    `)
+    .eq(
+      "game_id",
+      state.game.id
+    )
+    .order(
+      "created_at",
+      {
+        ascending:
+          false
+      }
+    );
+
+  if (error) {
+    throw error;
+  }
+
+  state.mediaLibrary =
+    data || [];
+
+  applyMediaLibraryFilters();
+}
+
+function applyMediaLibraryFilters() {
+  const searchTerm =
+    normalizeText(
+      elements.mediaLibrarySearch.value
+    );
+
+  const typeFilter =
+    elements.mediaLibraryType.value;
+
+  state.filteredMedia =
+    state.mediaLibrary.filter(
+      media => {
+        const searchable =
+          normalizeText(
+            [
+              media.display_name,
+              media.original_name,
+              media.storage_path
+            ]
+              .filter(Boolean)
+              .join(" ")
+          );
+
+        const matchesSearch =
+          !searchTerm ||
+          searchable.includes(
+            searchTerm
+          );
+
+        const matchesType =
+          !typeFilter ||
+          media.media_type ===
+            typeFilter;
+
+        return (
+          matchesSearch &&
+          matchesType
+        );
+      }
+    );
+
+  renderMediaLibrary();
+}
+
+function renderMediaLibrary() {
+  elements.mediaLibraryList.replaceChildren();
+
+  const count =
+    state.filteredMedia.length;
+
+  elements.mediaLibraryCount.textContent =
+    count === 1
+      ? "1 arquivo"
+      : `${count} arquivos`;
+
+  if (count === 0) {
+    const empty =
+      document.createElement("div");
+
+    empty.className =
+      "media-library-list__empty";
+
+    empty.textContent =
+      state.mediaLibrary.length === 0
+        ? "Nenhuma mídia foi enviada ainda."
+        : "Nenhuma mídia corresponde aos filtros.";
+
+    elements.mediaLibraryList.appendChild(
+      empty
+    );
+
+    setMediaLibraryMessage("");
+
+    return;
+  }
+
+  const fragment =
+    document.createDocumentFragment();
+
+  state.filteredMedia.forEach(
+    media => {
+      fragment.appendChild(
+        createMediaCard(
+          media
+        )
+      );
+    }
+  );
+
+  elements.mediaLibraryList.appendChild(
+    fragment
+  );
+
+  setMediaLibraryMessage(
+    "BIBLIOTECA ATUALIZADA."
+  );
+}
+
+function createMediaCard(media) {
+  const fragment =
+    elements.mediaCardTemplate.content
+      .cloneNode(true);
+
+  const preview =
+    fragment.querySelector(
+      ".media-card__preview"
+    );
+
+  const type =
+    fragment.querySelector(
+      ".media-card__type"
+    );
+
+  const name =
+    fragment.querySelector(
+      ".media-card__name"
+    );
+
+  const details =
+    fragment.querySelector(
+      ".media-card__details"
+    );
+
+  renderMediaCardPreview(
+    preview,
+    media
+  );
+
+  type.textContent =
+    formatMediaType(
+      media.media_type
+    );
+
+  name.textContent =
+    media.display_name ||
+    media.original_name;
+
+  details.textContent =
+    [
+      formatFileSize(
+        media.size_bytes
+      ),
+      formatMediaDate(
+        media.created_at
+      )
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+  fragment
+    .querySelectorAll(
+      "[data-media-action]"
+    )
+    .forEach(button => {
+      button.dataset.mediaId =
+        media.id;
+    });
+
+  return fragment;
+}
+
+function renderMediaCardPreview(
+  container,
+  media
+) {
+  container.replaceChildren();
+
+  if (
+    media.media_type ===
+    "audio"
+  ) {
+    const audio =
+      document.createElement("audio");
+
+    audio.controls = true;
+    audio.preload =
+      "metadata";
+
+    audio.src =
+      media.public_url;
+
+    container.appendChild(
+      audio
+    );
+
+    return;
+  }
+
+  const image =
+    document.createElement("img");
+
+  image.src =
+    media.public_url;
+
+  image.alt =
+    media.alt_text ||
+    media.display_name ||
+    "";
+
+  image.loading =
+    "lazy";
+
+  if (
+    media.media_type ===
+    "pixel_art"
+  ) {
+    image.classList.add(
+      "is-pixel-art"
+    );
+  }
+
+  container.appendChild(
+    image
+  );
+}
+
+function formatMediaType(mediaType) {
+  const names = {
+    image:
+      "IMAGEM",
+
+    pixel_art:
+      "PIXEL ART",
+
+    gif:
+      "GIF",
+
+    audio:
+      "ÁUDIO"
+  };
+
+  return names[mediaType] ||
+    mediaType;
+}
+
+function formatFileSize(sizeBytes) {
+  const size =
+    Number(sizeBytes);
+
+  if (!Number.isFinite(size)) {
+    return "";
+  }
+
+  if (size < 1024) {
+    return `${size} B`;
+  }
+
+  if (
+    size <
+    1024 * 1024
+  ) {
+    return `${
+      (
+        size / 1024
+      ).toFixed(1)
+    } KB`;
+  }
+
+  return `${
+    (
+      size /
+      (1024 * 1024)
+    ).toFixed(1)
+  } MB`;
+}
+
+function formatMediaDate(dateValue) {
+  if (!dateValue) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat(
+    "pt-BR",
+    {
+      dateStyle:
+        "short"
+    }
+  ).format(
+    new Date(
+      dateValue
+    )
+  );
+}
+
+function setMediaLibraryMessage(
+  message
+) {
+  elements.mediaLibraryMessage.textContent =
+    message || "";
+}
+
+
+/* ==========================================================
+   AÇÕES DA BIBLIOTECA
+   ========================================================== */
+
+async function handleMediaLibraryListClick(
+  event
+) {
+  const button =
+    event.target.closest(
+      "[data-media-action]"
+    );
+
+  if (!button) {
+    return;
+  }
+
+  event.preventDefault();
+
+  const media =
+    state.mediaLibrary.find(
+      item =>
+        item.id ===
+        button.dataset.mediaId
+    );
+
+  if (!media) {
+    return;
+  }
+
+  switch (
+    button.dataset.mediaAction
+  ) {
+    case "select":
+      selectMediaForBlock(
+        media
+      );
+      break;
+
+    case "copy":
+      await copyMediaUrl(
+        media
+      );
+      break;
+
+    case "delete":
+      await deleteMedia(
+        media
+      );
+      break;
+  }
+}
+
+function selectMediaForBlock(media) {
+  elements.blockMediaUrl.value =
+    media.public_url;
+
+  if (
+    media.media_type ===
+    "audio"
+  ) {
+    elements.blockType.value =
+      "audio";
+  } else if (
+    media.media_type ===
+    "pixel_art"
+  ) {
+    elements.blockType.value =
+      "pixel_art";
+  } else {
+    elements.blockType.value =
+      "image";
+  }
+
+  if (
+    !elements.blockAltText.value.trim()
+  ) {
+    elements.blockAltText.value =
+      media.alt_text ||
+      media.display_name ||
+      removeFileExtension(
+        media.original_name
+      );
+  }
+
+  updateBlockFormInterface();
+  closeMediaLibrary();
+}
+
+async function copyMediaUrl(media) {
+  try {
+    await navigator.clipboard.writeText(
+      media.public_url
+    );
+
+    setMediaLibraryMessage(
+      "ENDEREÇO COPIADO."
+    );
+  } catch (error) {
+    console.error(
+      "Erro ao copiar endereço:",
+      error
+    );
+
+    setMediaLibraryMessage(
+      "Não foi possível copiar automaticamente."
+    );
+  }
+}
+
+async function deleteMedia(media) {
+  try {
+    const isUsed =
+      await checkMediaUsage(
+        media.public_url
+      );
+
+    if (isUsed) {
+      window.alert(
+        "Este arquivo está sendo usado em pelo menos um bloco.\n\n" +
+        "Remova-o dos blocos antes de excluí-lo."
+      );
+
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        `Excluir permanentemente "${
+          media.display_name ||
+          media.original_name
+        }"?\n\nEssa ação não poderá ser desfeita.`
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setMediaLibraryMessage(
+      "EXCLUINDO ARQUIVO..."
+    );
+
+    const {
+      error: storageError
+    } = await state.client.storage
+      .from(
+        media.storage_bucket ||
+        MEDIA_BUCKET
+      )
+      .remove([
+        media.storage_path
+      ]);
+
+    if (storageError) {
+      throw storageError;
+    }
+
+    const {
+      error: databaseError
+    } = await state.client
+      .from("media_library")
+      .delete()
+      .eq("id", media.id)
+      .eq(
+        "game_id",
+        state.game.id
+      );
+
+    if (databaseError) {
+      throw databaseError;
+    }
+
+    state.mediaLibrary =
+      state.mediaLibrary.filter(
+        item =>
+          item.id !==
+          media.id
+      );
+
+    applyMediaLibraryFilters();
+  } catch (error) {
+    console.error(
+      "Erro ao excluir mídia:",
+      error
+    );
+
+    setMediaLibraryMessage(
+      formatMediaError(error)
+    );
+  }
+}
+
+async function checkMediaUsage(
+  publicUrl
+) {
+  const {
+    count,
+    error
+  } = await state.client
+    .from("scene_blocks")
+    .select(
+      "id",
+      {
+        count:
+          "exact",
+
+        head:
+          true
+      }
+    )
+    .eq(
+      "media_url",
+      publicUrl
+    );
+
+  if (error) {
+    throw error;
+  }
+
+  return Number(
+    count || 0
+  ) > 0;
+}
+
+
+/* ==========================================================
+   CONTROLE DOS MODAIS
    ========================================================== */
 
 function updateBodyOverflow() {
@@ -3690,7 +5058,8 @@ function updateBodyOverflow() {
     elements.sceneModal,
     elements.sceneActionsModal,
     elements.blocksModal,
-    elements.blockFormModal
+    elements.blockFormModal,
+    elements.mediaLibraryModal
   ].some(
     modal =>
       modal &&
@@ -3707,7 +5076,7 @@ function updateBodyOverflow() {
 
 
 /* ==========================================================
-   UTILIDADES GERAIS
+   UTILIDADES
    ========================================================== */
 
 function normalizeText(value) {
@@ -3721,31 +5090,43 @@ function normalizeText(value) {
 
 function emptyToNull(value) {
   const trimmed =
-    String(value || "").trim();
+    String(value || "")
+      .trim();
 
-  return trimmed || null;
+  return trimmed ||
+    null;
 }
 
 function isValidHttpUrl(value) {
   try {
     const url =
-      new URL(String(value));
+      new URL(
+        String(value)
+      );
 
     return (
-      url.protocol === "http:" ||
-      url.protocol === "https:"
+      url.protocol ===
+        "http:" ||
+      url.protocol ===
+        "https:"
     );
   } catch {
     return false;
   }
 }
 
+
+/* ==========================================================
+   TRATAMENTO DE ERROS
+   ========================================================== */
+
 function formatDatabaseError(error) {
-  const message = String(
-    error?.message ||
-    error?.details ||
-    "Erro desconhecido."
-  );
+  const message =
+    String(
+      error?.message ||
+      error?.details ||
+      "Erro desconhecido."
+    );
 
   const lowerMessage =
     message.toLocaleLowerCase(
@@ -3761,7 +5142,7 @@ function formatDatabaseError(error) {
     )
   ) {
     return (
-      "Já existe uma cena com esse identificador interno."
+      "Já existe um registro com esse identificador."
     );
   }
 
@@ -3797,7 +5178,7 @@ function formatDatabaseError(error) {
     )
   ) {
     return (
-      "Não foi possível alcançar o Supabase. Confira sua internet e tente novamente."
+      "Não foi possível alcançar o Supabase. Confira sua internet."
     );
   }
 
@@ -3827,7 +5208,7 @@ function formatDatabaseError(error) {
     )
   ) {
     return (
-      "Não foi possível concluir a operação porque existem dados relacionados."
+      "A operação não pôde ser concluída porque existem dados relacionados."
     );
   }
 
@@ -3838,6 +5219,81 @@ function formatDatabaseError(error) {
   ) {
     return (
       "Um dos valores informados não é aceito pelo banco de dados."
+    );
+  }
+
+  return message;
+}
+
+function formatMediaError(error) {
+  const message =
+    String(
+      error?.message ||
+      error?.details ||
+      "Erro desconhecido."
+    );
+
+  const lowerMessage =
+    message.toLocaleLowerCase(
+      "pt-BR"
+    );
+
+  if (
+    lowerMessage.includes(
+      "maximum allowed size"
+    ) ||
+    lowerMessage.includes(
+      "payload too large"
+    )
+  ) {
+    return (
+      "O arquivo é maior que o limite permitido."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "mime type"
+    )
+  ) {
+    return (
+      "O formato do arquivo não é permitido."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "row-level security"
+    ) ||
+    lowerMessage.includes(
+      "unauthorized"
+    )
+  ) {
+    return (
+      "A operação foi bloqueada pelas permissões do Storage."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "already exists"
+    ) ||
+    lowerMessage.includes(
+      "duplicate"
+    )
+  ) {
+    return (
+      "Já existe um arquivo com esse endereço."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "bucket not found"
+    )
+  ) {
+    return (
+      "O bucket adventure-media não foi encontrado."
     );
   }
 
