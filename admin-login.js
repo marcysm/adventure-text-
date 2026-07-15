@@ -1,219 +1,264 @@
 "use strict";
 
-/* ==========================================================
-   ARTIST VALLEY ADVENTURE
-   LOGIN ADMINISTRATIVO
-   ========================================================== */
+const elements = {};
 
-document.addEventListener("DOMContentLoaded", initializeAdminLogin);
+let adminClient = null;
 
-function initializeAdminLogin() {
-  const form = document.getElementById("loginForm");
-  const emailInput = document.getElementById("email");
-  const passwordInput = document.getElementById("password");
-  const errorElement =
-    document.getElementById("loginError") ||
-    document.getElementById("errorMessage");
+document.addEventListener(
+  "DOMContentLoaded",
+  initializeAdminLogin
+);
 
-  /*
-    Remove imediatamente e-mail e senha da URL,
-    caso uma versão anterior tenha enviado o formulário por GET.
-  */
-  if (window.location.search) {
-    window.history.replaceState(
-      {},
-      document.title,
-      window.location.pathname
+async function initializeAdminLogin() {
+  cacheElements();
+
+  try {
+    validateConfiguration();
+
+    adminClient = createAdminClient();
+
+    configureEvents();
+
+    await redirectIfAlreadyAuthenticated();
+  } catch (error) {
+    console.error(
+      "Erro ao iniciar login administrativo:",
+      error
+    );
+
+    showMessage(
+      formatErrorMessage(error),
+      "error"
+    );
+  }
+}
+
+function cacheElements() {
+  elements.form =
+    document.getElementById("login-form");
+
+  elements.email =
+    document.getElementById("email");
+
+  elements.password =
+    document.getElementById("password");
+
+  elements.message =
+    document.getElementById("login-message");
+
+  elements.button =
+    document.getElementById("login-button");
+
+  const missing = Object.entries(elements)
+    .filter(([, element]) => !element)
+    .map(([name]) => name);
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Elementos ausentes: ${missing.join(", ")}`
+    );
+  }
+}
+
+function validateConfiguration() {
+  if (!window.supabase) {
+    throw new Error(
+      "A biblioteca do Supabase não foi carregada."
     );
   }
 
-  if (!form) {
-    showError(
-      errorElement,
-      "O formulário de login não foi encontrado."
-    );
-
-    return;
-  }
-
-  form.setAttribute("method", "post");
-
-  if (!window.supabaseClient) {
-    showError(
-      errorElement,
+  if (!window.APP_CONFIG) {
+    throw new Error(
       "O arquivo config.js não foi carregado."
     );
+  }
+}
 
-    console.error(
-      "window.supabaseClient não existe. Verifique config.js e a ordem dos scripts."
+/*
+  Este cliente usa uma chave de armazenamento diferente.
+
+  Por isso, o login administrativo não substitui
+  a identidade anônima utilizada dentro do jogo.
+*/
+function createAdminClient() {
+  return window.supabase.createClient(
+    window.APP_CONFIG.supabaseUrl,
+    window.APP_CONFIG.supabasePublishableKey,
+    {
+      auth: {
+        storageKey:
+          "artist-valley-admin-auth",
+
+        persistSession: true,
+
+        autoRefreshToken: true,
+
+        detectSessionInUrl: true
+      }
+    }
+  );
+}
+
+function configureEvents() {
+  elements.form.addEventListener(
+    "submit",
+    handleLogin
+  );
+}
+
+async function redirectIfAlreadyAuthenticated() {
+  const {
+    data,
+    error
+  } = await adminClient.auth.getSession();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data.session?.user) {
+    elements.email.focus();
+    return;
+  }
+
+  const isAdmin = await verifyAdminPermission();
+
+  if (isAdmin) {
+    window.location.replace("admin.html");
+    return;
+  }
+
+  await adminClient.auth.signOut();
+
+  showMessage(
+    "A sessão encontrada não possui permissão administrativa.",
+    "error"
+  );
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+
+  const email =
+    elements.email.value.trim();
+
+  const password =
+    elements.password.value;
+
+  if (!email || !password) {
+    showMessage(
+      "Preencha o e-mail e a senha.",
+      "error"
     );
 
     return;
   }
 
-  form.addEventListener("submit", async event => {
-    event.preventDefault();
-    event.stopPropagation();
+  setLoading(true);
 
-    const email = emailInput?.value.trim() || "";
-    const password = passwordInput?.value || "";
+  showMessage(
+    "VERIFICANDO IDENTIDADE..."
+  );
 
-    if (!email || !password) {
-      showError(
-        errorElement,
-        "Preencha o e-mail e a senha."
-      );
-
-      return;
-    }
-
-    setFormLoading(form, true);
-    showError(errorElement, "");
-
-    try {
-      const {
-        data,
-        error
-      } = await window.supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data?.user) {
-        throw new Error(
-          "O Supabase não retornou um usuário autenticado."
-        );
-      }
-
-      const {
-        data: adminStatus,
-        error: adminError
-      } = await window.supabaseClient.rpc(
-        "get_admin_status"
-      );
-
-      if (adminError) {
-        throw adminError;
-      }
-
-      const status = normalizeAdminStatus(adminStatus);
-
-      if (!status.isAdmin || !status.isActive) {
-        await window.supabaseClient.auth.signOut();
-
-        throw new Error(
-          "Esta conta não possui acesso administrativo ativo."
-        );
-      }
-
-      window.location.replace("./admin.html");
-    } catch (error) {
-      console.error("Erro no login:", error);
-
-      showError(
-        errorElement,
-        translateLoginError(error)
-      );
-    } finally {
-      setFormLoading(form, false);
-    }
-  });
-
-  checkExistingSession();
-}
-
-async function checkExistingSession() {
   try {
     const {
-      data: { session },
-      error
-    } = await window.supabaseClient.auth.getSession();
-
-    if (error || !session?.user) {
-      return;
-    }
-
-    const {
       data,
-      error: adminError
-    } = await window.supabaseClient.rpc(
-      "get_admin_status"
-    );
+      error
+    } = await adminClient.auth.signInWithPassword({
+      email,
+      password
+    });
 
-    if (adminError) {
+    if (error) {
+      throw error;
+    }
+
+    if (!data.user) {
+      throw new Error(
+        "Nenhum usuário foi retornado."
+      );
+    }
+
+    const isAdmin =
+      await verifyAdminPermission();
+
+    if (!isAdmin) {
+      await adminClient.auth.signOut();
+
+      showMessage(
+        "Esta conta não possui autorização administrativa.",
+        "error"
+      );
+
       return;
     }
 
-    const status = normalizeAdminStatus(data);
+    showMessage(
+      "ACESSO AUTORIZADO.",
+      "success"
+    );
 
-    if (status.isAdmin && status.isActive) {
-      window.location.replace("./admin.html");
-    }
+    window.setTimeout(() => {
+      window.location.replace("admin.html");
+    }, 650);
   } catch (error) {
-    console.warn(
-      "Não foi possível verificar a sessão existente:",
+    console.error(
+      "Falha na autenticação:",
       error
     );
+
+    showMessage(
+      formatErrorMessage(error),
+      "error"
+    );
+  } finally {
+    setLoading(false);
   }
 }
 
-function normalizeAdminStatus(data) {
-  const value = Array.isArray(data)
-    ? data[0] || {}
-    : data || {};
+async function verifyAdminPermission() {
+  const {
+    data,
+    error
+  } = await adminClient.rpc(
+    "get_admin_status"
+  );
 
-  return {
-    isAdmin: Boolean(
-      value.is_admin ??
-      value.isAdmin ??
-      value.admin
-    ),
-
-    isActive: Boolean(
-      value.is_active ??
-      value.isActive ??
-      value.active
-    )
-  };
-}
-
-function showError(element, message) {
-  if (!element) {
-    return;
+  if (error) {
+    throw error;
   }
 
-  element.textContent = message || "";
-  element.hidden = !message;
-
-  element.classList.toggle(
-    "is-hidden",
-    !message
-  );
+  return data?.is_admin === true;
 }
 
-function setFormLoading(form, loading) {
-  const button = form.querySelector(
-    'button[type="submit"]'
-  );
+function setLoading(isLoading) {
+  elements.button.disabled = isLoading;
+  elements.email.disabled = isLoading;
+  elements.password.disabled = isLoading;
 
-  form.classList.toggle("is-loading", loading);
-
-  if (button) {
-    button.disabled = loading;
-
-    button.textContent = loading
+  elements.button.textContent =
+    isLoading
       ? "AUTENTICANDO..."
       : "AUTENTICAR";
-  }
 }
 
-function translateLoginError(error) {
+function showMessage(message, type = "") {
+  elements.message.className =
+    "login-message";
+
+  if (type) {
+    elements.message.classList.add(
+      `is-${type}`
+    );
+  }
+
+  elements.message.textContent =
+    message || "";
+}
+
+function formatErrorMessage(error) {
   const message = String(
-    error?.message || ""
+    error?.message || "Erro desconhecido."
   ).toLowerCase();
 
   if (
@@ -231,17 +276,9 @@ function translateLoginError(error) {
   if (
     message.includes("failed to fetch")
   ) {
-    return "Não foi possível conectar ao Supabase.";
+    return "Não foi possível alcançar o Supabase.";
   }
 
-  if (
-    message.includes("administrativo")
-  ) {
-    return error.message;
-  }
-
-  return (
-    error?.message ||
-    "Não foi possível realizar o acesso."
-  );
+  return error?.message ||
+    "Não foi possível realizar a autenticação.";
 }
