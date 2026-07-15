@@ -667,28 +667,48 @@ async function loadCurrentScene() {
           ascending: true
         }),
 
-      state.client
-        .from("scene_responses")
-        .select(`
-          id,
-          scene_id,
-          internal_name,
-          exact_phrase,
-          action_words,
-          target_words,
-          optional_words,
-          blocked_words,
-          response_text,
-          next_scene_id,
-          set_route_id,
-          required_flag_key,
-          blocked_flag_key,
-          required_item_key,
-          give_item_key,
-          remove_item_key,
-          set_flag_key,
-          priority
-        `)
+     state.client
+  .from("scene_responses")
+  .select(`
+    id,
+    scene_id,
+
+    internal_name,
+    response_key,
+    admin_description,
+
+    match_mode,
+    exact_phrase,
+
+    required_words,
+    optional_words,
+    forbidden_words,
+    synonyms,
+
+    action_words,
+    target_words,
+    blocked_words,
+
+    response_text,
+
+    target_scene_id,
+    target_route_id,
+
+    next_scene_id,
+    set_route_id,
+
+    required_flag_key,
+    blocked_flag_key,
+    required_item_key,
+
+    give_item_key,
+    remove_item_key,
+    set_flag_key,
+
+    priority,
+    display_order,
+    is_enabled
+  `)
         .eq("scene_id", state.session.current_scene_id)
         .eq("is_enabled", true)
         .order("priority", {
@@ -964,28 +984,19 @@ function identifySystemCommand(normalizedInput) {
   return null;
 }
 
-async function findMatchingResponse(normalizedInput) {
-  const flags = await loadPlayerFlags();
-  const inventory = await loadPlayerInventory();
+async function findMatchingResponse(
+  normalizedInput
+) {
+  const flags =
+    await loadPlayerFlags();
 
-  for (const response of state.responses) {
-    const exactPhrase = normalizeText(
-      response.exact_phrase || ""
-    );
+  const inventory =
+    await loadPlayerInventory();
 
-    if (
-      exactPhrase &&
-      exactPhrase === normalizedInput &&
-      responseConditionsPass(
-        response,
-        flags,
-        inventory
-      )
-    ) {
-      return response;
-    }
-  }
-
+  /*
+    As respostas já chegam ordenadas por prioridade.
+    Portanto, a primeira regra válida encontrada vence.
+  */
   for (const response of state.responses) {
     if (
       !responseConditionsPass(
@@ -997,41 +1008,338 @@ async function findMatchingResponse(normalizedInput) {
       continue;
     }
 
-    const blockedWords =
-      normalizeWordList(response.blocked_words);
-
     if (
-      blockedWords.some(word =>
-        containsWholeWord(normalizedInput, word)
+      responseMatchesInput(
+        response,
+        normalizedInput
       )
     ) {
-      continue;
-    }
-
-    const actionWords =
-      normalizeWordList(response.action_words);
-
-    const targetWords =
-      normalizeWordList(response.target_words);
-
-    const hasAction =
-      actionWords.length === 0 ||
-      actionWords.some(word =>
-        containsWholeWord(normalizedInput, word)
-      );
-
-    const hasTarget =
-      targetWords.length === 0 ||
-      targetWords.some(word =>
-        containsWholeWord(normalizedInput, word)
-      );
-
-    if (hasAction && hasTarget) {
       return response;
     }
   }
 
   return null;
+}
+
+
+/* ==========================================================
+   RECONHECIMENTO DO NOVO FORMATO
+   ========================================================== */
+
+function responseMatchesInput(
+  response,
+  normalizedInput
+) {
+  const matchMode =
+    response.match_mode ||
+    inferLegacyMatchMode(response);
+
+  /*
+    FRASE EXATA
+  */
+  if (matchMode === "exact") {
+    const exactPhrase =
+      normalizeText(
+        response.exact_phrase || ""
+      );
+
+    return (
+      Boolean(exactPhrase) &&
+      exactPhrase === normalizedInput
+    );
+  }
+
+  /*
+    Caso seja uma resposta antiga, mantemos
+    o sistema action_words + target_words.
+  */
+  if (matchMode === "legacy") {
+    return legacyResponseMatchesInput(
+      response,
+      normalizedInput
+    );
+  }
+
+  const synonyms =
+    normalizeSynonymGroups(
+      response.synonyms
+    );
+
+  const commandWords =
+    createExpandedCommandWords(
+      normalizedInput,
+      synonyms
+    );
+
+  const requiredWords =
+    normalizeWordList(
+      response.required_words
+    );
+
+  const optionalWords =
+    normalizeWordList(
+      response.optional_words
+    );
+
+  const forbiddenWords =
+    normalizeWordList(
+      response.forbidden_words
+    );
+
+  /*
+    Se uma palavra proibida aparecer,
+    a regra é imediatamente rejeitada.
+  */
+  const hasForbiddenWord =
+    forbiddenWords.some(word =>
+      commandContainsExpression(
+        commandWords,
+        normalizedInput,
+        word
+      )
+    );
+
+  if (hasForbiddenWord) {
+    return false;
+  }
+
+  /*
+    QUALQUER PALAVRA
+
+    Basta uma palavra obrigatória ou opcional
+    aparecer no comando.
+  */
+  if (matchMode === "any_keyword") {
+    const availableWords = [
+      ...requiredWords,
+      ...optionalWords
+    ];
+
+    return availableWords.some(word =>
+      commandContainsExpression(
+        commandWords,
+        normalizedInput,
+        word
+      )
+    );
+  }
+
+  /*
+    PALAVRAS COMBINADAS
+
+    Todas as obrigatórias precisam aparecer.
+  */
+  const hasAllRequiredWords =
+    requiredWords.every(word =>
+      commandContainsExpression(
+        commandWords,
+        normalizedInput,
+        word
+      )
+    );
+
+  if (!hasAllRequiredWords) {
+    return false;
+  }
+
+  /*
+    Quando existem palavras opcionais,
+    pelo menos uma precisa aparecer.
+
+    Sem palavras opcionais, as obrigatórias bastam.
+  */
+  if (optionalWords.length > 0) {
+    return optionalWords.some(word =>
+      commandContainsExpression(
+        commandWords,
+        normalizedInput,
+        word
+      )
+    );
+  }
+
+  return requiredWords.length > 0;
+}
+
+
+function inferLegacyMatchMode(response) {
+  if (
+    response.exact_phrase &&
+    normalizeText(
+      response.exact_phrase
+    )
+  ) {
+    return "exact";
+  }
+
+  if (
+    Array.isArray(response.action_words) ||
+    Array.isArray(response.target_words)
+  ) {
+    return "legacy";
+  }
+
+  return "keywords";
+}
+
+
+function legacyResponseMatchesInput(
+  response,
+  normalizedInput
+) {
+  const blockedWords =
+    normalizeWordList(
+      response.blocked_words
+    );
+
+  if (
+    blockedWords.some(word =>
+      containsWholeWord(
+        normalizedInput,
+        word
+      )
+    )
+  ) {
+    return false;
+  }
+
+  const actionWords =
+    normalizeWordList(
+      response.action_words
+    );
+
+  const targetWords =
+    normalizeWordList(
+      response.target_words
+    );
+
+  const hasAction =
+    actionWords.length === 0 ||
+    actionWords.some(word =>
+      containsWholeWord(
+        normalizedInput,
+        word
+      )
+    );
+
+  const hasTarget =
+    targetWords.length === 0 ||
+    targetWords.some(word =>
+      containsWholeWord(
+        normalizedInput,
+        word
+      )
+    );
+
+  return hasAction && hasTarget;
+}
+
+
+function normalizeSynonymGroups(synonyms) {
+  if (
+    !synonyms ||
+    typeof synonyms !== "object" ||
+    Array.isArray(synonyms)
+  ) {
+    return {};
+  }
+
+  const normalizedGroups = {};
+
+  Object.entries(synonyms).forEach(
+    ([mainWord, synonymList]) => {
+      const normalizedMainWord =
+        normalizeText(mainWord);
+
+      if (!normalizedMainWord) {
+        return;
+      }
+
+      const normalizedSynonyms =
+        Array.isArray(synonymList)
+          ? synonymList
+              .map(normalizeText)
+              .filter(Boolean)
+          : [];
+
+      normalizedGroups[
+        normalizedMainWord
+      ] = normalizedSynonyms;
+    }
+  );
+
+  return normalizedGroups;
+}
+
+
+function createExpandedCommandWords(
+  normalizedInput,
+  synonymGroups
+) {
+  const expandedWords =
+    new Set(
+      normalizedInput
+        .split(" ")
+        .filter(Boolean)
+    );
+
+  Object.entries(
+    synonymGroups
+  ).forEach(
+    ([mainWord, synonyms]) => {
+      const mainWordPresent =
+        containsWholeWord(
+          normalizedInput,
+          mainWord
+        );
+
+      const synonymPresent =
+        synonyms.some(synonym =>
+          containsWholeWord(
+            normalizedInput,
+            synonym
+          )
+        );
+
+      if (
+        !mainWordPresent &&
+        !synonymPresent
+      ) {
+        return;
+      }
+
+      expandedWords.add(mainWord);
+
+      synonyms.forEach(synonym => {
+        expandedWords.add(synonym);
+      });
+    }
+  );
+
+  return expandedWords;
+}
+
+
+function commandContainsExpression(
+  expandedWords,
+  normalizedInput,
+  expression
+) {
+  if (!expression) {
+    return false;
+  }
+
+  /*
+    Expressões com mais de uma palavra são verificadas
+    diretamente no texto completo.
+  */
+  if (expression.includes(" ")) {
+    return normalizedInput.includes(
+      expression
+    );
+  }
+
+  return expandedWords.has(expression);
 }
 
 function normalizeWordList(words) {
@@ -1190,6 +1498,9 @@ if (data.action_type === "open_admin_login") {
    ========================================================== */
 
 async function executeSceneResponse(response) {
+  /*
+    Primeiro mostramos a resposta cadastrada.
+  */
   if (response.response_text) {
     showSystemMessage(
       response.response_text,
@@ -1199,45 +1510,102 @@ async function executeSceneResponse(response) {
     await addHistoryEntry({
       sceneId: state.scene.id,
       entryType: "system",
-      displayedText: response.response_text
+      displayedText:
+        response.response_text
     });
 
     await wait(650);
   }
 
+  /*
+    Mantemos compatibilidade com as funções antigas
+    de flags e inventário.
+  */
   if (response.set_flag_key) {
-    await setPlayerFlag(response.set_flag_key);
+    await setPlayerFlag(
+      response.set_flag_key
+    );
   }
 
   if (response.give_item_key) {
-    await givePlayerItem(response.give_item_key);
+    await givePlayerItem(
+      response.give_item_key
+    );
   }
 
   if (response.remove_item_key) {
-    await removePlayerItem(response.remove_item_key);
+    await removePlayerItem(
+      response.remove_item_key
+    );
   }
+
+  /*
+    O painel novo utiliza:
+      target_route_id
+      target_scene_id
+
+    Os caminhos antigos utilizam:
+      set_route_id
+      next_scene_id
+
+    Aceitamos os dois formatos.
+  */
+  const targetRouteId =
+    response.target_route_id ||
+    response.set_route_id ||
+    null;
+
+  const targetSceneId =
+    response.target_scene_id ||
+    response.next_scene_id ||
+    null;
 
   const sessionChanges = {};
 
-  if (response.set_route_id) {
+  if (targetRouteId) {
     sessionChanges.route_id =
-      response.set_route_id;
+      targetRouteId;
   }
 
-  if (response.next_scene_id) {
+  if (targetSceneId) {
     sessionChanges.current_scene_id =
-      response.next_scene_id;
+      targetSceneId;
   }
 
-  if (Object.keys(sessionChanges).length > 0) {
-    await updateSession(sessionChanges);
-
-    await loadCurrentRoute();
-
-    updatePermanentInterface();
-
-    await loadCurrentScene();
+  /*
+    Se o caminho só possui uma resposta e não altera
+    a cena nem a rota, encerramos aqui.
+  */
+  if (
+    Object.keys(sessionChanges).length === 0
+  ) {
+    return;
   }
+
+  /*
+    Salvamos o novo destino na partida.
+  */
+  await updateSession(
+    sessionChanges
+  );
+
+  /*
+    Recarregamos a rota, pois ela pode ter mudado.
+  */
+  await loadCurrentRoute();
+
+  updatePermanentInterface();
+
+  /*
+    Limpamos a mensagem anterior antes de desenhar
+    a nova cena.
+  */
+  clearSystemMessage();
+
+  /*
+    Carregamos a cena de destino e seus novos caminhos.
+  */
+  await loadCurrentScene();
 }
 
 async function handleUnrecognizedInput(
