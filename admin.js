@@ -61,12 +61,17 @@ filteredRoutes: [],
 editingRouteId: null,
 actionsRouteId: null,
 
+items: [],
+filteredItems: [],
+editingItemId: null,
+actionsItemId: null,
 currentSection: "scenes",
 
 isSaving: false,
 isSavingBlock: false,
 isSavingResponse: false,
 isSavingRoute: false,
+isSavingItem: false,
 isUploadingMedia: false
 };
 
@@ -127,6 +132,7 @@ populateRouteSceneSelector();
 applySceneFilters();
 applyResponseFilters();
 applyRouteFilters();
+applyItemFilters();
 
 showAdminSection("scenes");
 
@@ -1020,6 +1026,200 @@ function cacheElements() {
     document.getElementById(
       "delete-route-button"
     );
+
+  /* ======================================================
+     ELEMENTOS DO EDITOR DE ITENS
+     ====================================================== */
+
+  elements.itemsSection =
+    document.getElementById(
+      "items-section"
+    );
+
+  elements.newItemButton =
+    document.getElementById(
+      "new-item-button"
+    );
+
+  elements.totalItems =
+    document.getElementById(
+      "total-items"
+    );
+
+  elements.activeItems =
+    document.getElementById(
+      "active-items"
+    );
+
+  elements.secretItems =
+    document.getElementById(
+      "secret-items"
+    );
+
+  elements.consumableItems =
+    document.getElementById(
+      "consumable-items"
+    );
+
+  elements.itemSearch =
+    document.getElementById(
+      "item-search"
+    );
+
+  elements.itemTypeFilter =
+    document.getElementById(
+      "item-type-filter"
+    );
+
+  elements.itemStatusFilter =
+    document.getElementById(
+      "item-status-filter"
+    );
+
+  elements.itemListMessage =
+    document.getElementById(
+      "item-list-message"
+    );
+
+  elements.itemList =
+    document.getElementById(
+      "item-list"
+    );
+
+  elements.itemCardTemplate =
+    document.getElementById(
+      "item-card-template"
+    );
+
+  elements.itemModal =
+    document.getElementById(
+      "item-modal"
+    );
+
+  elements.itemModalTitle =
+    document.getElementById(
+      "item-modal-title"
+    );
+
+  elements.itemForm =
+    document.getElementById(
+      "item-form"
+    );
+
+  elements.itemId =
+    document.getElementById(
+      "item-id"
+    );
+
+  elements.itemName =
+    document.getElementById(
+      "item-name"
+    );
+
+  elements.itemKey =
+    document.getElementById(
+      "item-key"
+    );
+
+  elements.itemType =
+    document.getElementById(
+      "item-type"
+    );
+
+  elements.itemDisplayOrder =
+    document.getElementById(
+      "item-display-order"
+    );
+
+  elements.itemDescription =
+    document.getElementById(
+      "item-description"
+    );
+
+  elements.itemAdminDescription =
+    document.getElementById(
+      "item-admin-description"
+    );
+
+  elements.itemImageUrl =
+    document.getElementById(
+      "item-image-url"
+    );
+
+  elements.itemImagePreview =
+    document.getElementById(
+      "item-image-preview"
+    );
+
+  elements.itemReceiveText =
+    document.getElementById(
+      "item-receive-text"
+    );
+
+  elements.itemUseText =
+    document.getElementById(
+      "item-use-text"
+    );
+
+  elements.itemMaximumQuantity =
+    document.getElementById(
+      "item-maximum-quantity"
+    );
+
+  elements.itemStackable =
+    document.getElementById(
+      "item-stackable"
+    );
+
+  elements.itemConsumable =
+    document.getElementById(
+      "item-consumable"
+    );
+
+  elements.itemEnabled =
+    document.getElementById(
+      "item-enabled"
+    );
+
+  elements.itemSecret =
+    document.getElementById(
+      "item-secret"
+    );
+
+  elements.itemFormMessage =
+    document.getElementById(
+      "item-form-message"
+    );
+
+  elements.saveItemButton =
+    document.getElementById(
+      "save-item-button"
+    );
+
+  elements.itemActionsModal =
+    document.getElementById(
+      "item-actions-modal"
+    );
+
+  elements.itemActionsTitle =
+    document.getElementById(
+      "item-actions-title"
+    );
+
+  elements.duplicateItemButton =
+    document.getElementById(
+      "duplicate-item-button"
+    );
+
+  elements.toggleItemButton =
+    document.getElementById(
+      "toggle-item-button"
+    );
+
+  elements.deleteItemButton =
+    document.getElementById(
+      "delete-item-button"
+    );
    
   const missing =
     Object.entries(elements)
@@ -1222,10 +1422,13 @@ document.addEventListener("keydown", event => {
   closeResponseActionsModal();
   closeResponseModal();
 
-     closeRouteActionsModal();
-  closeRouteModal();
-   
-  closeSceneModal();
+    closeRouteActionsModal();
+closeRouteModal();
+
+closeItemActionsModal();
+closeItemModal();
+
+closeSceneModal();
   closeActionsModal();
 });
 
@@ -1388,6 +1591,85 @@ elements.navigationItems.forEach(
 
   configureRouteColorEvents();
 
+  /* ======================================================
+     EVENTOS DO EDITOR DE ITENS
+     ====================================================== */
+
+  elements.newItemButton.addEventListener(
+    "click",
+    openNewItemModal
+  );
+
+  elements.itemSearch.addEventListener(
+    "input",
+    applyItemFilters
+  );
+
+  elements.itemTypeFilter.addEventListener(
+    "change",
+    applyItemFilters
+  );
+
+  elements.itemStatusFilter.addEventListener(
+    "change",
+    applyItemFilters
+  );
+
+  elements.itemList.addEventListener(
+    "click",
+    handleItemListClick
+  );
+
+  elements.itemForm.addEventListener(
+    "submit",
+    handleItemFormSubmit
+  );
+
+  elements.itemName.addEventListener(
+    "input",
+    handleItemNameInput
+  );
+
+  elements.itemKey.addEventListener(
+    "input",
+    handleItemKeyInput
+  );
+
+  elements.itemImageUrl.addEventListener(
+    "input",
+    renderItemImagePreview
+  );
+
+  elements.itemStackable.addEventListener(
+    "change",
+    updateItemQuantityInterface
+  );
+
+  elements.itemModal.addEventListener(
+    "click",
+    handleItemModalClick
+  );
+
+  elements.itemActionsModal.addEventListener(
+    "click",
+    handleItemActionsModalClick
+  );
+
+  elements.duplicateItemButton.addEventListener(
+    "click",
+    duplicateSelectedItem
+  );
+
+  elements.toggleItemButton.addEventListener(
+    "click",
+    toggleSelectedItem
+  );
+
+  elements.deleteItemButton.addEventListener(
+    "click",
+    deleteSelectedItem
+  );
+   
   const responseTestEvents = [
     elements.responseTestInput,
     elements.responseExactPhrase,
@@ -1597,11 +1879,12 @@ async function loadGame() {
 }
 
 async function loadPanelData() {
-  const [
-    routesResult,
-    scenesResult,
-    responsesResult
-  ] = await Promise.all([
+ const [
+  routesResult,
+  scenesResult,
+  responsesResult,
+  itemsResult
+] = await Promise.all([
   state.client
   .from("routes")
   .select(`
@@ -1625,9 +1908,37 @@ async function loadPanelData() {
     updated_at
   `)
   .eq("game_id", state.game.id)
+ .order("display_order", {
+  ascending: true
+}),
+
+state.client
+  .from("items")
+  .select(`
+    id,
+    game_id,
+    item_key,
+    name,
+    description,
+    admin_description,
+    item_type,
+    image_url,
+    receive_text,
+    use_text,
+    maximum_quantity,
+    is_stackable,
+    is_consumable,
+    is_secret,
+    is_enabled,
+    display_order,
+    created_at,
+    updated_at
+  `)
+  .eq("game_id", state.game.id)
   .order("display_order", {
     ascending: true
-  }),
+  })
+]);
 
 state.client
   .from("scenes")
@@ -1698,6 +2009,10 @@ state.client
     throw responsesResult.error;
   }
 
+   if (itemsResult.error) {
+  throw itemsResult.error;
+}
+
   state.routes =
     routesResult.data || [];
 
@@ -1717,6 +2032,10 @@ state.client
       response =>
         gameSceneIds.has(response.scene_id)
     );
+
+   state.items =
+  itemsResult.data || [];
+   
 }
 
 
@@ -5804,7 +6123,9 @@ function updateBodyOverflow() {
   elements.responseModal,
   elements.responseActionsModal,
   elements.routeModal,
-  elements.routeActionsModal
+  elements.routeActionsModal,
+  elements.itemModal,
+  elements.itemActionsModal
   ].some(
     modal =>
       modal &&
@@ -7323,6 +7644,276 @@ function getSceneById(sceneId) {
 }
 
 /* ==========================================================
+   EDITOR DE ITENS — BASE TEMPORÁRIA
+   ========================================================== */
+
+function applyItemFilters() {
+  state.filteredItems =
+    [...state.items];
+
+  elements.totalItems.textContent =
+    String(state.items.length);
+
+  elements.activeItems.textContent =
+    String(
+      state.items.filter(
+        item => item.is_enabled
+      ).length
+    );
+
+  elements.secretItems.textContent =
+    String(
+      state.items.filter(
+        item => item.is_secret
+      ).length
+    );
+
+  elements.consumableItems.textContent =
+    String(
+      state.items.filter(
+        item => item.is_consumable
+      ).length
+    );
+
+  elements.itemList.replaceChildren();
+
+  const message =
+    state.items.length === 0
+      ? "NENHUM ITEM CADASTRADO."
+      : `${state.items.length} ITEM(NS) CARREGADO(S).`;
+
+  elements.itemListMessage.textContent =
+    message;
+}
+
+
+function openNewItemModal() {
+  state.editingItemId = null;
+
+  elements.itemForm.reset();
+
+  elements.itemId.value = "";
+  elements.itemDisplayOrder.value = "10";
+  elements.itemMaximumQuantity.value = "1";
+  elements.itemEnabled.checked = true;
+  elements.itemStackable.checked = false;
+  elements.itemConsumable.checked = false;
+  elements.itemSecret.checked = false;
+
+  elements.itemModalTitle.textContent =
+    "Novo item";
+
+  elements.itemFormMessage.textContent =
+    "";
+
+  renderItemImagePreview();
+
+  elements.itemModal.classList.remove(
+    "is-hidden"
+  );
+
+  updateBodyOverflow();
+}
+
+
+function closeItemModal() {
+  if (state.isSavingItem) {
+    return;
+  }
+
+  elements.itemModal.classList.add(
+    "is-hidden"
+  );
+
+  state.editingItemId = null;
+
+  updateBodyOverflow();
+}
+
+
+function handleItemModalClick(event) {
+  const closeTarget =
+    event.target.closest(
+      "[data-close-item-modal]"
+    );
+
+  if (closeTarget) {
+    closeItemModal();
+  }
+}
+
+
+function closeItemActionsModal() {
+  elements.itemActionsModal.classList.add(
+    "is-hidden"
+  );
+
+  state.actionsItemId = null;
+
+  updateBodyOverflow();
+}
+
+
+function handleItemActionsModalClick(event) {
+  const closeTarget =
+    event.target.closest(
+      "[data-close-item-actions]"
+    );
+
+  if (closeTarget) {
+    closeItemActionsModal();
+  }
+}
+
+
+function renderItemImagePreview() {
+  elements.itemImagePreview.replaceChildren();
+
+  const imageUrl =
+    elements.itemImageUrl.value.trim();
+
+  if (!imageUrl) {
+    const message =
+      document.createElement("p");
+
+    message.textContent =
+      "NENHUMA IMAGEM SELECIONADA";
+
+    elements.itemImagePreview.appendChild(
+      message
+    );
+
+    return;
+  }
+
+  const image =
+    document.createElement("img");
+
+  image.src = imageUrl;
+  image.alt = "Pré-visualização do item";
+
+  image.addEventListener(
+    "error",
+    () => {
+      elements.itemImagePreview.replaceChildren();
+
+      const message =
+        document.createElement("p");
+
+      message.textContent =
+        "NÃO FOI POSSÍVEL CARREGAR A IMAGEM";
+
+      elements.itemImagePreview.appendChild(
+        message
+      );
+    }
+  );
+
+  elements.itemImagePreview.appendChild(
+    image
+  );
+}
+
+
+function handleItemNameInput() {
+  if (
+    state.editingItemId ||
+    elements.itemKey.value.trim()
+  ) {
+    return;
+  }
+
+  elements.itemKey.value =
+    normalizeItemKey(
+      elements.itemName.value
+    );
+}
+
+
+function handleItemKeyInput() {
+  elements.itemKey.value =
+    normalizeItemKey(
+      elements.itemKey.value
+    );
+}
+
+
+function normalizeItemKey(value) {
+  return String(value || "")
+    .toLocaleLowerCase("pt-BR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 100);
+}
+
+
+function updateItemQuantityInterface() {
+  if (!elements.itemStackable.checked) {
+    elements.itemMaximumQuantity.value =
+      "1";
+
+    elements.itemMaximumQuantity.disabled =
+      true;
+
+    return;
+  }
+
+  elements.itemMaximumQuantity.disabled =
+    false;
+
+  if (
+    Number(
+      elements.itemMaximumQuantity.value
+    ) < 2
+  ) {
+    elements.itemMaximumQuantity.value =
+      "2";
+  }
+}
+
+
+async function handleItemFormSubmit(event) {
+  event.preventDefault();
+
+  elements.itemFormMessage.className =
+    "form-message is-error";
+
+  elements.itemFormMessage.textContent =
+    "O salvamento será ativado na próxima parte da etapa.";
+}
+
+
+function handleItemListClick() {
+  /*
+    A lista completa será criada na próxima parte.
+  */
+}
+
+
+function duplicateSelectedItem() {
+  /*
+    Será implementado na parte 13D-3.
+  */
+}
+
+
+function toggleSelectedItem() {
+  /*
+    Será implementado na parte 13D-3.
+  */
+}
+
+
+function deleteSelectedItem() {
+  /*
+    Será implementado na parte 13D-3.
+  */
+}
+
+/* ==========================================================
    UTILIDADES
    ========================================================== */
 
@@ -7679,6 +8270,11 @@ function showAdminSection(section) {
     section !== "routes"
   );
 
+   elements.itemsSection.classList.toggle(
+  "is-hidden",
+  section !== "items"
+);
+
   if (section === "scenes") {
     applySceneFilters();
   }
@@ -7690,6 +8286,10 @@ function showAdminSection(section) {
   if (section === "routes") {
     applyRouteFilters();
   }
+
+   if (section === "items") {
+  applyItemFilters();
+}
 }
 
 /* ==========================================================
