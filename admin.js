@@ -48,12 +48,21 @@ const state = {
   blocks: [],
   editingBlockId: null,
 
-  mediaLibrary: [],
-  filteredMedia: [],
+ mediaLibrary: [],
+filteredMedia: [],
 
-  isSaving: false,
-  isSavingBlock: false,
-  isUploadingMedia: false
+responses: [],
+filteredResponses: [],
+
+editingResponseId: null,
+actionsResponseId: null,
+
+currentSection: "scenes",
+
+isSaving: false,
+isSavingBlock: false,
+isSavingResponse: false,
+isUploadingMedia: false
 };
 
 const elements = {};
@@ -106,9 +115,15 @@ async function initializeAdminPanel() {
     await loadPanelData();
 
     displayAdminIdentity();
-    populateRouteSelectors();
-    applySceneFilters();
-    revealPanel();
+   populateRouteSelectors();
+populateResponseSelectors();
+
+applySceneFilters();
+applyResponseFilters();
+
+showAdminSection("scenes");
+
+revealPanel();
   } catch (error) {
     console.error(
       "Não foi possível abrir o painel:",
@@ -560,6 +575,231 @@ function cacheElements() {
       "media-card-template"
     );
 
+  elements.navigationItems =
+    document.querySelectorAll(
+      ".admin-navigation__item[data-section]"
+    );
+
+  elements.scenesSection =
+    document.getElementById(
+      "scenes-section"
+    );
+
+  elements.responsesSection =
+    document.getElementById(
+      "responses-section"
+    );
+
+  elements.newResponseButton =
+    document.getElementById(
+      "new-response-button"
+    );
+
+  elements.totalResponses =
+    document.getElementById(
+      "total-responses"
+    );
+
+  elements.activeResponses =
+    document.getElementById(
+      "active-responses"
+    );
+
+  elements.inactiveResponses =
+    document.getElementById(
+      "inactive-responses"
+    );
+
+  elements.destinationResponses =
+    document.getElementById(
+      "destination-responses"
+    );
+
+  elements.responseSearch =
+    document.getElementById(
+      "response-search"
+    );
+
+  elements.responseSceneFilter =
+    document.getElementById(
+      "response-scene-filter"
+    );
+
+  elements.responseModeFilter =
+    document.getElementById(
+      "response-mode-filter"
+    );
+
+  elements.responseStatusFilter =
+    document.getElementById(
+      "response-status-filter"
+    );
+
+  elements.responseListMessage =
+    document.getElementById(
+      "response-list-message"
+    );
+
+  elements.responseList =
+    document.getElementById(
+      "response-list"
+    );
+
+  elements.responseCardTemplate =
+    document.getElementById(
+      "response-card-template"
+    );
+
+  elements.responseModal =
+    document.getElementById(
+      "response-modal"
+    );
+
+  elements.responseModalTitle =
+    document.getElementById(
+      "response-modal-title"
+    );
+
+  elements.responseForm =
+    document.getElementById(
+      "response-form"
+    );
+
+  elements.responseId =
+    document.getElementById(
+      "response-id"
+    );
+
+  elements.responseKey =
+    document.getElementById(
+      "response-key"
+    );
+
+  elements.responseSourceScene =
+    document.getElementById(
+      "response-source-scene"
+    );
+
+  elements.responseDescription =
+    document.getElementById(
+      "response-description"
+    );
+
+  elements.responseMatchMode =
+    document.getElementById(
+      "response-match-mode"
+    );
+
+  elements.exactPhraseField =
+    document.getElementById(
+      "exact-phrase-field"
+    );
+
+  elements.responseExactPhrase =
+    document.getElementById(
+      "response-exact-phrase"
+    );
+
+  elements.keywordFields =
+    document.getElementById(
+      "keyword-fields"
+    );
+
+  elements.responseRequiredWords =
+    document.getElementById(
+      "response-required-words"
+    );
+
+  elements.responseOptionalWords =
+    document.getElementById(
+      "response-optional-words"
+    );
+
+  elements.responseForbiddenWords =
+    document.getElementById(
+      "response-forbidden-words"
+    );
+
+  elements.responseSynonyms =
+    document.getElementById(
+      "response-synonyms"
+    );
+
+  elements.responseText =
+    document.getElementById(
+      "response-text"
+    );
+
+  elements.responseTargetScene =
+    document.getElementById(
+      "response-target-scene"
+    );
+
+  elements.responseTargetRoute =
+    document.getElementById(
+      "response-target-route"
+    );
+
+  elements.responseDestinationPreview =
+    document.getElementById(
+      "response-destination-preview"
+    );
+
+  elements.responsePriority =
+    document.getElementById(
+      "response-priority"
+    );
+
+  elements.responseEnabled =
+    document.getElementById(
+      "response-enabled"
+    );
+
+  elements.responseTestInput =
+    document.getElementById(
+      "response-test-input"
+    );
+
+  elements.responseTestResult =
+    document.getElementById(
+      "response-test-result"
+    );
+
+  elements.responseFormMessage =
+    document.getElementById(
+      "response-form-message"
+    );
+
+  elements.saveResponseButton =
+    document.getElementById(
+      "save-response-button"
+    );
+
+  elements.responseActionsModal =
+    document.getElementById(
+      "response-actions-modal"
+    );
+
+  elements.responseActionsTitle =
+    document.getElementById(
+      "response-actions-title"
+    );
+
+  elements.duplicateResponseButton =
+    document.getElementById(
+      "duplicate-response-button"
+    );
+
+  elements.toggleResponseButton =
+    document.getElementById(
+      "toggle-response-button"
+    );
+
+  elements.deleteResponseButton =
+    document.getElementById(
+      "delete-response-button"
+    );
+   
   const missing =
     Object.entries(elements)
       .filter(([, element]) => !element)
@@ -748,10 +988,133 @@ function configureEvents() {
     handleMediaLibraryListClick
   );
 
-  document.addEventListener(
-    "keydown",
-    handleEscapeKey
+  document.addEventListener("keydown", event => {
+  /*
+    Este evento verifica todas as teclas pressionadas
+    dentro do painel administrativo.
+  */
+
+  if (event.key !== "Escape") {
+    /*
+      Se a tecla apertada não for ESC,
+      o código para aqui e não fecha nada.
+    */
+    return;
+  }
+
+  /*
+    Ao apertar ESC, fechamos primeiro os modais
+    que podem estar por cima de outros modais.
+  */
+
+  closeMediaLibrary();
+
+  closeBlockFormModal();
+  closeBlocksModal();
+
+  closeResponseActionsModal();
+  closeResponseModal();
+
+  closeSceneModal();
+  closeActionsModal();
+});
+   
+  elements.newResponseButton.addEventListener(
+    "click",
+    openNewResponseModal
   );
+
+  elements.responseSearch.addEventListener(
+    "input",
+    applyResponseFilters
+  );
+
+  elements.responseSceneFilter.addEventListener(
+    "change",
+    applyResponseFilters
+  );
+
+  elements.responseModeFilter.addEventListener(
+    "change",
+    applyResponseFilters
+  );
+
+  elements.responseStatusFilter.addEventListener(
+    "change",
+    applyResponseFilters
+  );
+
+  elements.responseList.addEventListener(
+    "click",
+    handleResponseListClick
+  );
+
+  elements.responseForm.addEventListener(
+    "submit",
+    handleResponseFormSubmit
+  );
+
+  elements.responseMatchMode.addEventListener(
+    "change",
+    updateResponseModeInterface
+  );
+
+  elements.responseTargetScene.addEventListener(
+    "change",
+    updateResponseDestinationPreview
+  );
+
+  elements.responseTargetRoute.addEventListener(
+    "change",
+    updateResponseDestinationPreview
+  );
+
+  elements.responseKey.addEventListener(
+    "input",
+    handleResponseKeyInput
+  );
+
+  elements.responseModal.addEventListener(
+    "click",
+    handleResponseModalClick
+  );
+
+  elements.responseActionsModal.addEventListener(
+    "click",
+    handleResponseActionsModalClick
+  );
+
+  elements.duplicateResponseButton.addEventListener(
+    "click",
+    duplicateSelectedResponse
+  );
+
+  elements.toggleResponseButton.addEventListener(
+    "click",
+    toggleSelectedResponse
+  );
+
+  elements.deleteResponseButton.addEventListener(
+    "click",
+    deleteSelectedResponse
+  );
+
+  const responseTestEvents = [
+    elements.responseTestInput,
+    elements.responseExactPhrase,
+    elements.responseRequiredWords,
+    elements.responseOptionalWords,
+    elements.responseForbiddenWords,
+    elements.responseSynonyms
+  ];
+
+  responseTestEvents.forEach(element => {
+    element.addEventListener(
+      "input",
+      testCurrentResponseRule
+    );
+  });
+   
 }
 
 function handleEscapeKey(event) {
@@ -947,7 +1310,8 @@ async function loadGame() {
 async function loadPanelData() {
   const [
     routesResult,
-    scenesResult
+    scenesResult,
+    responsesResult
   ] = await Promise.all([
     state.client
       .from("routes")
@@ -990,6 +1354,35 @@ async function loadPanelData() {
       .eq("game_id", state.game.id)
       .order("updated_at", {
         ascending: false
+      }),
+
+    state.client
+      .from("scene_responses")
+      .select(`
+        id,
+        scene_id,
+        response_key,
+        admin_description,
+        match_mode,
+        exact_phrase,
+        required_words,
+        optional_words,
+        forbidden_words,
+        synonyms,
+        response_text,
+        target_scene_id,
+        target_route_id,
+        priority,
+        display_order,
+        is_enabled,
+        created_at,
+        updated_at
+      `)
+      .order("priority", {
+        ascending: false
+      })
+      .order("display_order", {
+        ascending: true
       })
   ]);
 
@@ -1001,55 +1394,29 @@ async function loadPanelData() {
     throw scenesResult.error;
   }
 
+  if (responsesResult.error) {
+    throw responsesResult.error;
+  }
+
   state.routes =
     routesResult.data || [];
 
   state.scenes =
     scenesResult.data || [];
-}
 
-async function refreshScenes() {
-  showSceneListMessage(
-    "ATUALIZANDO CENAS..."
+  /*
+    Mantemos apenas respostas pertencentes às cenas
+    do jogo que está aberto no painel.
+  */
+  const gameSceneIds = new Set(
+    state.scenes.map(scene => scene.id)
   );
 
-  const {
-    data,
-    error
-  } = await state.client
-    .from("scenes")
-    .select(`
-      id,
-      game_id,
-      route_id,
-      scene_key,
-      title,
-      admin_description,
-      fallback_text,
-      help_mode,
-      help_text,
-      allow_repeat,
-      allow_inventory,
-      allow_history,
-      allow_map,
-      is_ending,
-      ending_type,
-      is_enabled,
-      created_at,
-      updated_at
-    `)
-    .eq("game_id", state.game.id)
-    .order("updated_at", {
-      ascending: false
-    });
-
-  if (error) {
-    throw error;
-  }
-
-  state.scenes = data || [];
-
-  applySceneFilters();
+  state.responses =
+    (responsesResult.data || []).filter(
+      response =>
+        gameSceneIds.has(response.scene_id)
+    );
 }
 
 
@@ -5297,5 +5664,1784 @@ function formatMediaError(error) {
     );
   }
 
+  if (
+    lowerMessage.includes(
+      "scene_responses_scene_key_unique"
+    )
+  ) {
+    return (
+      "Já existe um caminho com esse identificador nesta cena."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "caminho não encontrado"
+    )
+  ) {
+    return (
+      "O caminho selecionado não foi encontrado."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "acesso administrativo necessário"
+    )
+  ) {
+    return (
+      "Sua sessão não possui autorização administrativa."
+    );
+  }
+
+  if (
+    lowerMessage.includes(
+      "invalid input syntax for type uuid"
+    )
+  ) {
+    return (
+      "Uma das cenas ou rotas selecionadas possui um identificador inválido."
+    );
+  }
+   
   return message;
+}
+
+/* ==========================================================
+   NAVEGAÇÃO ADMINISTRATIVA
+   ========================================================== */
+
+function handleNavigationClick(event) {
+  const button = event.currentTarget;
+
+  if (button.disabled) {
+    return;
+  }
+
+  const section =
+    button.dataset.section;
+
+  if (!section) {
+    return;
+  }
+
+  showAdminSection(section);
+}
+
+function showAdminSection(section) {
+  state.currentSection = section;
+
+  elements.navigationItems.forEach(
+    navigationItem => {
+      navigationItem.classList.toggle(
+        "is-active",
+        navigationItem.dataset.section === section
+      );
+    }
+  );
+
+  elements.scenesSection.classList.toggle(
+    "is-hidden",
+    section !== "scenes"
+  );
+
+  elements.responsesSection.classList.toggle(
+    "is-hidden",
+    section !== "responses"
+  );
+
+  if (section === "responses") {
+    applyResponseFilters();
+  }
+}
+
+
+/* ==========================================================
+   SELETORES DOS CAMINHOS
+   ========================================================== */
+
+function populateResponseSelectors() {
+  const sortedScenes = [...state.scenes].sort(
+    (firstScene, secondScene) => {
+      const firstName =
+        firstScene.title ||
+        firstScene.scene_key;
+
+      const secondName =
+        secondScene.title ||
+        secondScene.scene_key;
+
+      return firstName.localeCompare(
+        secondName,
+        "pt-BR"
+      );
+    }
+  );
+
+  sortedScenes.forEach(scene => {
+    const label =
+      scene.title
+        ? `${scene.title} — ${scene.scene_key}`
+        : scene.scene_key;
+
+    appendOption(
+      elements.responseSceneFilter,
+      scene.id,
+      label
+    );
+
+    appendOption(
+      elements.responseSourceScene,
+      scene.id,
+      label
+    );
+
+    appendOption(
+      elements.responseTargetScene,
+      scene.id,
+      label
+    );
+  });
+
+  state.routes.forEach(route => {
+    appendOption(
+      elements.responseTargetRoute,
+      route.id,
+      route.is_secret
+        ? `${route.name} — secreta`
+        : route.name
+    );
+  });
+}
+
+function appendOption(
+  selectElement,
+  value,
+  label
+) {
+  const option =
+    document.createElement("option");
+
+  option.value = value;
+  option.textContent = label;
+
+  selectElement.appendChild(option);
+}
+
+
+/* ==========================================================
+   CARREGAR E ATUALIZAR CAMINHOS
+   ========================================================== */
+
+async function refreshResponses() {
+  showResponseListMessage(
+    "ATUALIZANDO CAMINHOS..."
+  );
+
+  const {
+    data,
+    error
+  } = await state.client
+    .from("scene_responses")
+    .select(`
+      id,
+      scene_id,
+      response_key,
+      admin_description,
+      match_mode,
+      exact_phrase,
+      required_words,
+      optional_words,
+      forbidden_words,
+      synonyms,
+      response_text,
+      target_scene_id,
+      target_route_id,
+      priority,
+      display_order,
+      is_enabled,
+      created_at,
+      updated_at
+    `)
+    .in(
+      "scene_id",
+      state.scenes.map(scene => scene.id)
+    )
+    .order("priority", {
+      ascending: false
+    })
+    .order("display_order", {
+      ascending: true
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  state.responses = data || [];
+
+  applyResponseFilters();
+}
+
+
+/* ==========================================================
+   FILTROS DOS CAMINHOS
+   ========================================================== */
+
+function applyResponseFilters() {
+  const searchTerm =
+    normalizeText(
+      elements.responseSearch.value
+    );
+
+  const sceneFilter =
+    elements.responseSceneFilter.value;
+
+  const modeFilter =
+    elements.responseModeFilter.value;
+
+  const statusFilter =
+    elements.responseStatusFilter.value;
+
+  state.filteredResponses =
+    state.responses.filter(response => {
+      const searchableText =
+        normalizeText([
+          response.response_key,
+          response.admin_description,
+          response.exact_phrase,
+          response.response_text,
+          ...(response.required_words || []),
+          ...(response.optional_words || []),
+          ...(response.forbidden_words || [])
+        ].filter(Boolean).join(" "));
+
+      const matchesSearch =
+        !searchTerm ||
+        searchableText.includes(searchTerm);
+
+      const matchesScene =
+        !sceneFilter ||
+        response.scene_id === sceneFilter;
+
+      const matchesMode =
+        !modeFilter ||
+        response.match_mode === modeFilter;
+
+      let matchesStatus = true;
+
+      switch (statusFilter) {
+        case "active":
+          matchesStatus =
+            response.is_enabled === true;
+          break;
+
+        case "inactive":
+          matchesStatus =
+            response.is_enabled === false;
+          break;
+
+        case "destination":
+          matchesStatus =
+            Boolean(
+              response.target_scene_id ||
+              response.target_route_id
+            );
+          break;
+
+        default:
+          matchesStatus = true;
+      }
+
+      return (
+        matchesSearch &&
+        matchesScene &&
+        matchesMode &&
+        matchesStatus
+      );
+    });
+
+  updateResponseStatistics();
+  renderResponseList();
+}
+
+function updateResponseStatistics() {
+  elements.totalResponses.textContent =
+    String(state.responses.length);
+
+  elements.activeResponses.textContent =
+    String(
+      state.responses.filter(
+        response => response.is_enabled
+      ).length
+    );
+
+  elements.inactiveResponses.textContent =
+    String(
+      state.responses.filter(
+        response => !response.is_enabled
+      ).length
+    );
+
+  elements.destinationResponses.textContent =
+    String(
+      state.responses.filter(
+        response =>
+          response.target_scene_id ||
+          response.target_route_id
+      ).length
+    );
+}
+
+
+/* ==========================================================
+   LISTA DE CAMINHOS
+   ========================================================== */
+
+function renderResponseList() {
+  elements.responseList.replaceChildren();
+
+  if (
+    state.filteredResponses.length === 0
+  ) {
+    const empty =
+      document.createElement("div");
+
+    empty.className =
+      "response-list__empty";
+
+    empty.textContent =
+      "Nenhum caminho corresponde aos filtros selecionados.";
+
+    elements.responseList.appendChild(
+      empty
+    );
+
+    showResponseListMessage(
+      "NENHUM CAMINHO ENCONTRADO."
+    );
+
+    return;
+  }
+
+  const fragment =
+    document.createDocumentFragment();
+
+  state.filteredResponses.forEach(
+    response => {
+      fragment.appendChild(
+        createResponseCard(response)
+      );
+    }
+  );
+
+  elements.responseList.appendChild(
+    fragment
+  );
+
+  showResponseListMessage(
+    `${state.filteredResponses.length} CAMINHO(S) EXIBIDO(S).`
+  );
+}
+
+function createResponseCard(response) {
+  const fragment =
+    elements.responseCardTemplate.content
+      .cloneNode(true);
+
+  const card =
+    fragment.querySelector(
+      ".response-card"
+    );
+
+  const title =
+    fragment.querySelector(
+      ".response-card__title"
+    );
+
+  const identifier =
+    fragment.querySelector(
+      ".response-card__identifier"
+    );
+
+  const priority =
+    fragment.querySelector(
+      ".response-card__priority"
+    );
+
+  const source =
+    fragment.querySelector(
+      '[data-response-location="source"]'
+    );
+
+  const target =
+    fragment.querySelector(
+      '[data-response-location="target"]'
+    );
+
+  const description =
+    fragment.querySelector(
+      ".response-card__description"
+    );
+
+  const mode =
+    fragment.querySelector(
+      ".response-card__mode"
+    );
+
+  const matcher =
+    fragment.querySelector(
+      ".response-card__matcher"
+    );
+
+  const answer =
+    fragment.querySelector(
+      ".response-card__answer"
+    );
+
+  card.dataset.responseId =
+    response.id;
+
+  card.classList.toggle(
+    "is-inactive",
+    !response.is_enabled
+  );
+
+  title.textContent =
+    response.admin_description ||
+    response.response_key ||
+    "Caminho sem nome";
+
+  identifier.textContent =
+    response.response_key;
+
+  priority.textContent =
+    `PRIORIDADE ${response.priority ?? 100}`;
+
+  const sourceScene =
+    getSceneById(response.scene_id);
+
+  const targetScene =
+    getSceneById(
+      response.target_scene_id
+    );
+
+  const targetRoute =
+    getRouteById(
+      response.target_route_id
+    );
+
+  source.textContent =
+    sourceScene
+      ? (
+          sourceScene.title ||
+          sourceScene.scene_key
+        )
+      : "ORIGEM DESCONHECIDA";
+
+  if (targetScene && targetRoute) {
+    target.textContent =
+      `${
+        targetScene.title ||
+        targetScene.scene_key
+      } · ROTA ${targetRoute.name}`;
+  } else if (targetScene) {
+    target.textContent =
+      targetScene.title ||
+      targetScene.scene_key;
+  } else if (targetRoute) {
+    target.textContent =
+      `MESMA CENA · ROTA ${targetRoute.name}`;
+  } else {
+    target.textContent =
+      "MESMA CENA";
+  }
+
+  description.textContent =
+    response.admin_description ||
+    "Nenhuma descrição administrativa.";
+
+  mode.textContent =
+    formatResponseMatchMode(
+      response.match_mode
+    );
+
+  matcher.textContent =
+    formatResponseMatcher(response);
+
+  answer.textContent =
+    response.response_text ||
+    "Sem texto de resposta.";
+
+  fragment
+    .querySelectorAll(
+      "[data-response-action]"
+    )
+    .forEach(button => {
+      button.dataset.responseId =
+        response.id;
+    });
+
+  return fragment;
+}
+
+function getSceneById(sceneId) {
+  return state.scenes.find(
+    scene => scene.id === sceneId
+  ) || null;
+}
+
+function formatResponseMatchMode(mode) {
+  const names = {
+    exact: "FRASE EXATA",
+    keywords: "PALAVRAS COMBINADAS",
+    any_keyword: "QUALQUER PALAVRA"
+  };
+
+  return names[mode] || mode;
+}
+
+function formatResponseMatcher(response) {
+  if (response.match_mode === "exact") {
+    return response.exact_phrase ||
+      "Frase não cadastrada";
+  }
+
+  const sections = [];
+
+  if (
+    response.required_words?.length
+  ) {
+    sections.push(
+      `obrigatórias: ${
+        response.required_words.join(", ")
+      }`
+    );
+  }
+
+  if (
+    response.optional_words?.length
+  ) {
+    sections.push(
+      `opcionais: ${
+        response.optional_words.join(", ")
+      }`
+    );
+  }
+
+  if (
+    response.forbidden_words?.length
+  ) {
+    sections.push(
+      `proibidas: ${
+        response.forbidden_words.join(", ")
+      }`
+    );
+  }
+
+  return sections.length > 0
+    ? sections.join(" | ")
+    : "Nenhuma palavra cadastrada";
+}
+
+function showResponseListMessage(
+  message,
+  type = ""
+) {
+  elements.responseListMessage.className =
+    "scene-list-message";
+
+  if (type) {
+    elements.responseListMessage.classList.add(
+      `is-${type}`
+    );
+  }
+
+  elements.responseListMessage.textContent =
+    message || "";
+}
+
+
+/* ==========================================================
+   CLIQUES DA LISTA
+   ========================================================== */
+
+function handleResponseListClick(event) {
+  const button = event.target.closest(
+    "[data-response-action]"
+  );
+
+  if (!button) {
+    return;
+  }
+
+  const responseId =
+    button.dataset.responseId;
+
+  if (!responseId) {
+    return;
+  }
+
+  switch (button.dataset.responseAction) {
+    case "edit":
+      openEditResponseModal(
+        responseId
+      );
+      break;
+
+    case "more":
+      openResponseActionsModal(
+        responseId
+      );
+      break;
+  }
+}
+
+
+/* ==========================================================
+   MODAL DO CAMINHO
+   ========================================================== */
+
+function openNewResponseModal() {
+  state.editingResponseId = null;
+
+  resetResponseForm();
+
+  elements.responseModalTitle.textContent =
+    "Novo caminho";
+
+  elements.responseKey.disabled = false;
+
+  openResponseModal();
+}
+
+function openEditResponseModal(responseId) {
+  const response =
+    state.responses.find(
+      item => item.id === responseId
+    );
+
+  if (!response) {
+    showResponseListMessage(
+      "O caminho selecionado não foi encontrado.",
+      "error"
+    );
+
+    return;
+  }
+
+  state.editingResponseId =
+    response.id;
+
+  fillResponseForm(response);
+
+  elements.responseModalTitle.textContent =
+    response.admin_description ||
+    response.response_key;
+
+  /*
+    O identificador e a cena de origem permanecem
+    bloqueados para evitar quebrar referências.
+  */
+  elements.responseKey.disabled = true;
+
+  elements.responseSourceScene.disabled =
+    true;
+
+  openResponseModal();
+}
+
+function openResponseModal() {
+  clearResponseFormMessage();
+
+  elements.responseModal.classList.remove(
+    "is-hidden"
+  );
+
+  document.body.style.overflow =
+    "hidden";
+
+  window.setTimeout(() => {
+    elements.responseKey.focus();
+  }, 50);
+}
+
+function closeResponseModal() {
+  if (state.isSavingResponse) {
+    return;
+  }
+
+  elements.responseModal.classList.add(
+    "is-hidden"
+  );
+
+  document.body.style.overflow = "";
+
+  state.editingResponseId = null;
+
+  elements.responseSourceScene.disabled =
+    false;
+}
+
+function handleResponseModalClick(event) {
+  if (
+    event.target.closest(
+      "[data-close-response-modal]"
+    )
+  ) {
+    closeResponseModal();
+  }
+}
+
+function resetResponseForm() {
+  elements.responseForm.reset();
+
+  elements.responseId.value = "";
+  elements.responseKey.value = "";
+
+  elements.responseSourceScene.value =
+    elements.responseSceneFilter.value || "";
+
+  elements.responseMatchMode.value =
+    "exact";
+
+  elements.responsePriority.value =
+    "100";
+
+  elements.responseEnabled.checked =
+    true;
+
+  elements.responseTargetScene.value =
+    "";
+
+  elements.responseTargetRoute.value =
+    "";
+
+  elements.responseKey.disabled =
+    false;
+
+  elements.responseSourceScene.disabled =
+    false;
+
+  updateResponseModeInterface();
+  updateResponseDestinationPreview();
+
+  clearResponseFormMessage();
+
+  resetResponseTestResult();
+}
+
+function fillResponseForm(response) {
+  elements.responseId.value =
+    response.id;
+
+  elements.responseKey.value =
+    response.response_key || "";
+
+  elements.responseSourceScene.value =
+    response.scene_id || "";
+
+  elements.responseDescription.value =
+    response.admin_description || "";
+
+  elements.responseMatchMode.value =
+    response.match_mode || "keywords";
+
+  elements.responseExactPhrase.value =
+    response.exact_phrase || "";
+
+  elements.responseRequiredWords.value =
+    formatWordArrayForField(
+      response.required_words
+    );
+
+  elements.responseOptionalWords.value =
+    formatWordArrayForField(
+      response.optional_words
+    );
+
+  elements.responseForbiddenWords.value =
+    formatWordArrayForField(
+      response.forbidden_words
+    );
+
+  elements.responseSynonyms.value =
+    formatSynonymsForField(
+      response.synonyms
+    );
+
+  elements.responseText.value =
+    response.response_text || "";
+
+  elements.responseTargetScene.value =
+    response.target_scene_id || "";
+
+  elements.responseTargetRoute.value =
+    response.target_route_id || "";
+
+  elements.responsePriority.value =
+    String(response.priority ?? 100);
+
+  elements.responseEnabled.checked =
+    response.is_enabled === true;
+
+  updateResponseModeInterface();
+  updateResponseDestinationPreview();
+
+  clearResponseFormMessage();
+  resetResponseTestResult();
+}
+
+
+/* ==========================================================
+   INTERFACE DO CAMINHO
+   ========================================================== */
+
+function updateResponseModeInterface() {
+  const mode =
+    elements.responseMatchMode.value;
+
+  elements.exactPhraseField.classList.toggle(
+    "is-hidden",
+    mode !== "exact"
+  );
+
+  elements.keywordFields.classList.toggle(
+    "is-hidden",
+    mode === "exact"
+  );
+
+  testCurrentResponseRule();
+}
+
+function updateResponseDestinationPreview() {
+  const targetScene =
+    getSceneById(
+      elements.responseTargetScene.value
+    );
+
+  const targetRoute =
+    getRouteById(
+      elements.responseTargetRoute.value
+    );
+
+  let message =
+    "O jogador permanecerá na cena e na rota atuais.";
+
+  if (targetScene && targetRoute) {
+    message =
+      `O jogador irá para “${
+        targetScene.title ||
+        targetScene.scene_key
+      }” e entrará na rota “${targetRoute.name}”.`;
+  } else if (targetScene) {
+    message =
+      `O jogador irá para “${
+        targetScene.title ||
+        targetScene.scene_key
+      }” e manterá a rota atual.`;
+  } else if (targetRoute) {
+    message =
+      `O jogador permanecerá na cena atual e entrará na rota “${targetRoute.name}”.`;
+  }
+
+  elements.responseDestinationPreview.textContent =
+    message;
+}
+
+function handleResponseKeyInput() {
+  if (elements.responseKey.disabled) {
+    return;
+  }
+
+  elements.responseKey.value =
+    normalizeSceneKey(
+      elements.responseKey.value
+    );
+}
+
+
+/* ==========================================================
+   CONVERTER PALAVRAS E SINÔNIMOS
+   ========================================================== */
+
+function parseWordList(value) {
+  const words = String(value || "")
+    .split(/[\n,;]+/)
+    .map(word =>
+      normalizeCommandText(word)
+    )
+    .filter(Boolean);
+
+  return [...new Set(words)];
+}
+
+function formatWordArrayForField(words) {
+  return Array.isArray(words)
+    ? words.join(", ")
+    : "";
+}
+
+function parseSynonyms(value) {
+  const result = {};
+
+  String(value || "")
+    .split(/\n+/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .forEach(line => {
+      const separatorIndex =
+        line.indexOf("=");
+
+      if (separatorIndex === -1) {
+        return;
+      }
+
+      const mainWord =
+        normalizeCommandText(
+          line.slice(
+            0,
+            separatorIndex
+          )
+        );
+
+      const synonyms =
+        parseWordList(
+          line.slice(
+            separatorIndex + 1
+          )
+        );
+
+      if (
+        mainWord &&
+        synonyms.length > 0
+      ) {
+        result[mainWord] = synonyms;
+      }
+    });
+
+  return result;
+}
+
+function formatSynonymsForField(synonyms) {
+  if (
+    !synonyms ||
+    typeof synonyms !== "object"
+  ) {
+    return "";
+  }
+
+  return Object.entries(synonyms)
+    .map(([word, values]) => {
+      const synonymList =
+        Array.isArray(values)
+          ? values
+          : [];
+
+      return (
+        `${word} = ` +
+        synonymList.join(", ")
+      );
+    })
+    .join("\n");
+}
+
+
+/* ==========================================================
+   SALVAR CAMINHO
+   ========================================================== */
+
+async function handleResponseFormSubmit(event) {
+  event.preventDefault();
+
+  if (state.isSavingResponse) {
+    return;
+  }
+
+  const responseData =
+    collectResponseFormData();
+
+  const validationError =
+    validateResponseData(
+      responseData
+    );
+
+  if (validationError) {
+    showResponseFormMessage(
+      validationError,
+      "error"
+    );
+
+    return;
+  }
+
+  setResponseSaving(true);
+
+  showResponseFormMessage(
+    "SALVANDO CAMINHO..."
+  );
+
+  try {
+    if (state.editingResponseId) {
+      await updateResponse(
+        state.editingResponseId,
+        responseData
+      );
+    } else {
+      await createResponse(
+        responseData
+      );
+    }
+
+    showResponseFormMessage(
+      "CAMINHO SALVO COM SUCESSO.",
+      "success"
+    );
+
+    await refreshResponses();
+
+    window.setTimeout(() => {
+      closeResponseModal();
+    }, 450);
+  } catch (error) {
+    console.error(
+      "Erro ao salvar caminho:",
+      error
+    );
+
+    showResponseFormMessage(
+      formatDatabaseError(error),
+      "error"
+    );
+  } finally {
+    setResponseSaving(false);
+  }
+}
+
+function collectResponseFormData() {
+  const matchMode =
+    elements.responseMatchMode.value;
+
+  return {
+    scene_id:
+      elements.responseSourceScene.value,
+
+    response_key:
+      normalizeSceneKey(
+        elements.responseKey.value
+      ),
+
+    admin_description:
+      emptyToNull(
+        elements.responseDescription.value
+      ),
+
+    match_mode:
+      matchMode,
+
+    exact_phrase:
+      matchMode === "exact"
+        ? emptyToNull(
+            elements.responseExactPhrase.value
+          )
+        : null,
+
+    required_words:
+      matchMode !== "exact"
+        ? parseWordList(
+            elements.responseRequiredWords.value
+          )
+        : [],
+
+    optional_words:
+      matchMode !== "exact"
+        ? parseWordList(
+            elements.responseOptionalWords.value
+          )
+        : [],
+
+    forbidden_words:
+      matchMode !== "exact"
+        ? parseWordList(
+            elements.responseForbiddenWords.value
+          )
+        : [],
+
+    synonyms:
+      parseSynonyms(
+        elements.responseSynonyms.value
+      ),
+
+    response_text:
+      emptyToNull(
+        elements.responseText.value
+      ),
+
+    target_scene_id:
+      elements.responseTargetScene.value ||
+      null,
+
+    target_route_id:
+      elements.responseTargetRoute.value ||
+      null,
+
+    priority:
+      Number.parseInt(
+        elements.responsePriority.value,
+        10
+      ) || 100,
+
+    is_enabled:
+      elements.responseEnabled.checked
+  };
+}
+
+function validateResponseData(responseData) {
+  if (!responseData.response_key) {
+    return (
+      "Informe o identificador interno do caminho."
+    );
+  }
+
+  if (!responseData.scene_id) {
+    return "Selecione a cena de origem.";
+  }
+
+  if (
+    responseData.match_mode === "exact" &&
+    !responseData.exact_phrase
+  ) {
+    return "Informe a frase exata.";
+  }
+
+  if (
+    responseData.match_mode === "keywords" &&
+    responseData.required_words.length === 0
+  ) {
+    return (
+      "Cadastre pelo menos uma palavra obrigatória."
+    );
+  }
+
+  if (
+    responseData.match_mode ===
+      "any_keyword" &&
+    responseData.required_words.length === 0 &&
+    responseData.optional_words.length === 0
+  ) {
+    return (
+      "Cadastre pelo menos uma palavra obrigatória ou opcional."
+    );
+  }
+
+  if (
+    !responseData.response_text &&
+    !responseData.target_scene_id &&
+    !responseData.target_route_id
+  ) {
+    return (
+      "O caminho precisa mostrar uma resposta ou alterar cena/rota."
+    );
+  }
+
+  return null;
+}
+
+async function createResponse(
+  responseData
+) {
+  const nextDisplayOrder =
+    getNextResponseDisplayOrder(
+      responseData.scene_id
+    );
+
+  const {
+    data,
+    error
+  } = await state.client
+    .from("scene_responses")
+    .insert({
+      ...responseData,
+      display_order:
+        nextDisplayOrder
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+async function updateResponse(
+  responseId,
+  responseData
+) {
+  const {
+    scene_id,
+    response_key,
+    ...editableData
+  } = responseData;
+
+  const {
+    data,
+    error
+  } = await state.client
+    .from("scene_responses")
+    .update(editableData)
+    .eq("id", responseId)
+    .eq("scene_id", scene_id)
+    .select("id")
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+function getNextResponseDisplayOrder(
+  sceneId
+) {
+  const sceneResponses =
+    state.responses.filter(
+      response =>
+        response.scene_id === sceneId
+    );
+
+  if (sceneResponses.length === 0) {
+    return 10;
+  }
+
+  return Math.max(
+    ...sceneResponses.map(
+      response =>
+        Number(
+          response.display_order || 0
+        )
+    )
+  ) + 10;
+}
+
+function setResponseSaving(isSaving) {
+  state.isSavingResponse =
+    isSaving;
+
+  elements.responseForm
+    .querySelectorAll(
+      "input, textarea, select, button"
+    )
+    .forEach(control => {
+      control.disabled = isSaving;
+    });
+
+  if (!isSaving) {
+    elements.responseKey.disabled =
+      Boolean(
+        state.editingResponseId
+      );
+
+    elements.responseSourceScene.disabled =
+      Boolean(
+        state.editingResponseId
+      );
+  }
+
+  elements.saveResponseButton.textContent =
+    isSaving
+      ? "SALVANDO..."
+      : "SALVAR CAMINHO";
+}
+
+function showResponseFormMessage(
+  message,
+  type = ""
+) {
+  elements.responseFormMessage.className =
+    "form-message";
+
+  if (type) {
+    elements.responseFormMessage.classList.add(
+      `is-${type}`
+    );
+  }
+
+  elements.responseFormMessage.textContent =
+    message || "";
+}
+
+function clearResponseFormMessage() {
+  showResponseFormMessage("");
+}
+
+
+/* ==========================================================
+   TESTADOR DE COMANDO
+   ========================================================== */
+
+function testCurrentResponseRule() {
+  const originalCommand =
+    elements.responseTestInput.value;
+
+  if (!originalCommand.trim()) {
+    resetResponseTestResult();
+    return;
+  }
+
+  const command =
+    normalizeCommandText(
+      originalCommand
+    );
+
+  const rule =
+    collectResponseFormData();
+
+  const matched =
+    responseRuleMatchesCommand(
+      rule,
+      command
+    );
+
+  elements.responseTestResult.className =
+    "response-test-result";
+
+  elements.responseTestResult.classList.add(
+    matched
+      ? "is-match"
+      : "is-no-match"
+  );
+
+  elements.responseTestResult.textContent =
+    matched
+      ? "CORRESPONDE: este caminho reconheceria o comando."
+      : "NÃO CORRESPONDE: este caminho seria ignorado.";
+}
+
+function resetResponseTestResult() {
+  elements.responseTestResult.className =
+    "response-test-result";
+
+  elements.responseTestResult.textContent =
+    "Digite um comando para verificar se ele corresponde às regras acima.";
+}
+
+function responseRuleMatchesCommand(
+  rule,
+  normalizedCommand
+) {
+  if (!normalizedCommand) {
+    return false;
+  }
+
+  if (rule.match_mode === "exact") {
+    return (
+      normalizedCommand ===
+      normalizeCommandText(
+        rule.exact_phrase
+      )
+    );
+  }
+
+  const expandedCommandWords =
+    createExpandedCommandWords(
+      normalizedCommand,
+      rule.synonyms
+    );
+
+  const forbiddenMatched =
+    rule.forbidden_words.some(
+      forbiddenWord =>
+        expandedCommandWords.has(
+          forbiddenWord
+        )
+    );
+
+  if (forbiddenMatched) {
+    return false;
+  }
+
+  if (
+    rule.match_mode === "any_keyword"
+  ) {
+    const allPossibleWords = [
+      ...rule.required_words,
+      ...rule.optional_words
+    ];
+
+    return allPossibleWords.some(
+      word =>
+        expandedCommandWords.has(word)
+    );
+  }
+
+  const requiredMatched =
+    rule.required_words.every(
+      requiredWord =>
+        expandedCommandWords.has(
+          requiredWord
+        )
+    );
+
+  if (!requiredMatched) {
+    return false;
+  }
+
+  /*
+    Quando existem palavras opcionais,
+    pelo menos uma delas deve aparecer.
+    Sem opcionais, as obrigatórias bastam.
+  */
+  if (
+    rule.optional_words.length > 0
+  ) {
+    return rule.optional_words.some(
+      optionalWord =>
+        expandedCommandWords.has(
+          optionalWord
+        )
+    );
+  }
+
+  return true;
+}
+
+function createExpandedCommandWords(
+  normalizedCommand,
+  synonymGroups
+) {
+  const commandWords =
+    normalizedCommand
+      .split(" ")
+      .filter(Boolean);
+
+  const expanded =
+    new Set(commandWords);
+
+  Object.entries(
+    synonymGroups || {}
+  ).forEach(([mainWord, synonyms]) => {
+    const normalizedMainWord =
+      normalizeCommandText(mainWord);
+
+    const normalizedSynonyms =
+      Array.isArray(synonyms)
+        ? synonyms.map(
+            synonym =>
+              normalizeCommandText(
+                synonym
+              )
+          )
+        : [];
+
+    const mainWordPresent =
+      expanded.has(
+        normalizedMainWord
+      );
+
+    const synonymPresent =
+      normalizedSynonyms.some(
+        synonym =>
+          expanded.has(synonym)
+      );
+
+    if (
+      mainWordPresent ||
+      synonymPresent
+    ) {
+      expanded.add(
+        normalizedMainWord
+      );
+
+      normalizedSynonyms.forEach(
+        synonym => {
+          expanded.add(synonym);
+        }
+      );
+    }
+  });
+
+  return expanded;
+}
+
+function normalizeCommandText(value) {
+  return String(value || "")
+    .toLocaleLowerCase("pt-BR")
+    .normalize("NFD")
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
+    .replace(
+      /[^a-z0-9\s]+/g,
+      " "
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+
+/* ==========================================================
+   MENU DE AÇÕES DO CAMINHO
+   ========================================================== */
+
+function openResponseActionsModal(
+  responseId
+) {
+  const response =
+    state.responses.find(
+      item => item.id === responseId
+    );
+
+  if (!response) {
+    return;
+  }
+
+  state.actionsResponseId =
+    response.id;
+
+  elements.responseActionsTitle.textContent =
+    response.admin_description ||
+    response.response_key;
+
+  updateToggleResponseButton(
+    response
+  );
+
+  elements.responseActionsModal.classList.remove(
+    "is-hidden"
+  );
+
+  document.body.style.overflow =
+    "hidden";
+}
+
+function closeResponseActionsModal() {
+  elements.responseActionsModal.classList.add(
+    "is-hidden"
+  );
+
+  document.body.style.overflow = "";
+
+  state.actionsResponseId = null;
+}
+
+function handleResponseActionsModalClick(
+  event
+) {
+  if (
+    event.target.closest(
+      "[data-close-response-actions]"
+    )
+  ) {
+    closeResponseActionsModal();
+  }
+}
+
+function updateToggleResponseButton(
+  response
+) {
+  const title =
+    elements.toggleResponseButton
+      .querySelector("strong");
+
+  const description =
+    elements.toggleResponseButton
+      .querySelector("span");
+
+  if (response.is_enabled) {
+    title.textContent =
+      "DESATIVAR CAMINHO";
+
+    description.textContent =
+      "Impede temporariamente que esta regra seja utilizada.";
+  } else {
+    title.textContent =
+      "ATIVAR CAMINHO";
+
+    description.textContent =
+      "Torna esta regra novamente disponível para o jogo.";
+  }
+}
+
+
+/* ==========================================================
+   DUPLICAR CAMINHO
+   ========================================================== */
+
+async function duplicateSelectedResponse() {
+  const response =
+    state.responses.find(
+      item =>
+        item.id ===
+        state.actionsResponseId
+    );
+
+  if (!response) {
+    return;
+  }
+
+  elements.duplicateResponseButton.disabled =
+    true;
+
+  try {
+    const {
+      data,
+      error
+    } = await state.client.rpc(
+      "duplicate_scene_response",
+      {
+        p_response_id: response.id
+      }
+    );
+
+    if (error) {
+      throw error;
+    }
+
+    await refreshResponses();
+
+    closeResponseActionsModal();
+
+    if (data) {
+      openEditResponseModal(data);
+    }
+  } catch (error) {
+    console.error(
+      "Erro ao duplicar caminho:",
+      error
+    );
+
+    window.alert(
+      formatDatabaseError(error)
+    );
+  } finally {
+    elements.duplicateResponseButton.disabled =
+      false;
+  }
+}
+
+
+/* ==========================================================
+   ATIVAR OU DESATIVAR CAMINHO
+   ========================================================== */
+
+async function toggleSelectedResponse() {
+  const response =
+    state.responses.find(
+      item =>
+        item.id ===
+        state.actionsResponseId
+    );
+
+  if (!response) {
+    return;
+  }
+
+  elements.toggleResponseButton.disabled =
+    true;
+
+  try {
+    const {
+      error
+    } = await state.client
+      .from("scene_responses")
+      .update({
+        is_enabled:
+          !response.is_enabled
+      })
+      .eq("id", response.id)
+      .eq(
+        "scene_id",
+        response.scene_id
+      );
+
+    if (error) {
+      throw error;
+    }
+
+    await refreshResponses();
+
+    closeResponseActionsModal();
+  } catch (error) {
+    console.error(
+      "Erro ao alterar caminho:",
+      error
+    );
+
+    window.alert(
+      formatDatabaseError(error)
+    );
+  } finally {
+    elements.toggleResponseButton.disabled =
+      false;
+  }
+}
+
+
+/* ==========================================================
+   EXCLUIR CAMINHO
+   ========================================================== */
+
+async function deleteSelectedResponse() {
+  const response =
+    state.responses.find(
+      item =>
+        item.id ===
+        state.actionsResponseId
+    );
+
+  if (!response) {
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Excluir permanentemente o caminho “${
+      response.admin_description ||
+      response.response_key
+    }”?\n\n` +
+    "Essa ação não poderá ser desfeita."
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  elements.deleteResponseButton.disabled =
+    true;
+
+  try {
+    const {
+      error
+    } = await state.client
+      .from("scene_responses")
+      .delete()
+      .eq("id", response.id)
+      .eq(
+        "scene_id",
+        response.scene_id
+      );
+
+    if (error) {
+      throw error;
+    }
+
+    await refreshResponses();
+
+    closeResponseActionsModal();
+  } catch (error) {
+    console.error(
+      "Erro ao excluir caminho:",
+      error
+    );
+
+    window.alert(
+      formatDatabaseError(error)
+    );
+  } finally {
+    elements.deleteResponseButton.disabled =
+      false;
+  }
 }
