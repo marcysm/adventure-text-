@@ -2702,6 +2702,80 @@ function clearSceneFormMessage() {
   showSceneFormMessage("");
 }
 
+/* ==========================================================
+   ATUALIZAR CENAS
+   ========================================================== */
+
+async function refreshScenes() {
+  showSceneListMessage(
+    "ATUALIZANDO CENAS..."
+  );
+
+  const {
+    data,
+    error
+  } = await state.client
+    .from("scenes")
+    .select(`
+      id,
+      game_id,
+      route_id,
+      scene_key,
+      title,
+      admin_description,
+      fallback_text,
+      help_mode,
+      help_text,
+      allow_repeat,
+      allow_inventory,
+      allow_history,
+      allow_map,
+      is_ending,
+      ending_type,
+      is_enabled,
+      created_at,
+      updated_at
+    `)
+    .eq("game_id", state.game.id)
+    .order("updated_at", {
+      ascending: false
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  /*
+    Atualiza a lista principal de cenas
+    mantida pelo painel.
+  */
+  state.scenes =
+    data || [];
+
+  /*
+    Atualiza todos os seletores que dependem
+    das cenas cadastradas.
+  */
+  populateResponseSelectors();
+  populateRouteSceneSelector();
+
+  /*
+    Atualiza a listagem visível da aba Cenas.
+  */
+  applySceneFilters();
+
+  /*
+    Atualiza também os cartões e filtros de Caminhos,
+    pois eles exibem nomes de cenas de origem e destino.
+  */
+  applyResponseFilters();
+
+  /*
+    Atualiza as Rotas, pois elas podem usar
+    uma cena como cena inicial.
+  */
+  applyRouteFilters();
+}
 
 /* ==========================================================
    MENU DE AÇÕES DA CENA
