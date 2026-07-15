@@ -112,15 +112,13 @@
         CENAS
       </button>
 
-      <button
-        class="admin-navigation__item"
-        type="button"
-        data-section="routes"
-        disabled
-      >
-        ROTAS
-        <span>EM BREVE</span>
-      </button>
+     <button
+  class="admin-navigation__item"
+  type="button"
+  data-section="routes"
+>
+  ROTAS
+</button>
 
      <button
   class="admin-navigation__item"
@@ -439,6 +437,117 @@
     </div>
   </section>
 
+  <!-- =====================================================
+     CONTEÚDO: ROTAS
+     ===================================================== -->
+
+<section
+  id="routes-section"
+  class="admin-section is-hidden"
+>
+  <div class="section-heading">
+    <div>
+      <p class="section-heading__eyebrow">
+        CAMINHOS NARRATIVOS
+      </p>
+
+      <h2>Rotas</h2>
+
+      <p>
+        Configure os caminhos principais e secretos,
+        as cores da interface e as cenas iniciais.
+      </p>
+    </div>
+
+    <button
+      id="new-route-button"
+      class="button button--primary"
+      type="button"
+    >
+      + NOVA ROTA
+    </button>
+  </div>
+
+
+  <div class="scene-statistics">
+    <article>
+      <span>TOTAL</span>
+      <strong id="total-routes">0</strong>
+    </article>
+
+    <article>
+      <span>ATIVAS</span>
+      <strong id="active-routes">0</strong>
+    </article>
+
+    <article>
+      <span>SECRETAS</span>
+      <strong id="secret-routes">0</strong>
+    </article>
+
+    <article>
+      <span>INICIAIS</span>
+      <strong id="initial-routes">0</strong>
+    </article>
+  </div>
+
+
+  <section class="scene-filters route-filters">
+    <div class="field field--search">
+      <label for="route-search">
+        PESQUISAR
+      </label>
+
+      <input
+        id="route-search"
+        type="search"
+        placeholder="Nome, código ou descrição..."
+        autocomplete="off"
+      >
+    </div>
+
+    <div class="field">
+      <label for="route-status-filter">
+        ESTADO
+      </label>
+
+      <select id="route-status-filter">
+        <option value="">
+          Todas
+        </option>
+
+        <option value="active">
+          Ativas
+        </option>
+
+        <option value="inactive">
+          Desativadas
+        </option>
+
+        <option value="secret">
+          Secretas
+        </option>
+
+        <option value="initial">
+          Disponíveis inicialmente
+        </option>
+      </select>
+    </div>
+  </section>
+
+
+  <p
+    id="route-list-message"
+    class="scene-list-message"
+    aria-live="polite"
+  ></p>
+
+
+  <div
+    id="route-list"
+    class="route-list"
+  ></div>
+</section>
 
   <p
     id="response-list-message"
@@ -2119,7 +2228,439 @@
   </section>
 </div>
 
-  
+  <!-- =====================================================
+     MODAL DE ROTA
+     ===================================================== -->
+
+<div
+  id="route-modal"
+  class="modal is-hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="route-modal-title"
+>
+  <div
+    class="modal__backdrop"
+    data-close-route-modal
+  ></div>
+
+  <section class="modal__panel modal__panel--large">
+    <header class="modal__header">
+      <div>
+        <p class="modal__eyebrow">
+          CAMINHO NARRATIVO
+        </p>
+
+        <h2 id="route-modal-title">
+          Nova rota
+        </h2>
+      </div>
+
+      <button
+        class="modal__close"
+        type="button"
+        data-close-route-modal
+        aria-label="Fechar formulário"
+      >
+        ×
+      </button>
+    </header>
+
+
+    <form
+      id="route-form"
+      class="scene-form"
+    >
+      <input
+        id="route-id"
+        type="hidden"
+      >
+
+
+      <fieldset class="form-group">
+        <legend>Identificação</legend>
+
+        <div class="form-grid form-grid--two">
+          <div class="field">
+            <label for="route-name">
+              NOME DA ROTA *
+            </label>
+
+            <input
+              id="route-name"
+              type="text"
+              maxlength="150"
+              required
+              placeholder="Ex.: Vermelho"
+            >
+          </div>
+
+          <div class="field">
+            <label for="route-code">
+              CÓDIGO INTERNO *
+            </label>
+
+            <input
+              id="route-code"
+              type="text"
+              maxlength="100"
+              required
+              placeholder="vermelho"
+            >
+
+            <small>
+              Use letras minúsculas, números e sublinhados.
+            </small>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="route-description">
+            DESCRIÇÃO PARA O JOGO
+          </label>
+
+          <textarea
+            id="route-description"
+            rows="3"
+            maxlength="2000"
+            placeholder="Descrição narrativa da rota..."
+          ></textarea>
+        </div>
+
+        <div class="field">
+          <label for="route-admin-description">
+            DESCRIÇÃO ADMINISTRATIVA
+          </label>
+
+          <textarea
+            id="route-admin-description"
+            rows="3"
+            maxlength="2000"
+            placeholder="Explique a função desta rota..."
+          ></textarea>
+        </div>
+      </fieldset>
+
+
+      <fieldset class="form-group">
+        <legend>Início da rota</legend>
+
+        <div class="form-grid form-grid--two">
+          <div class="field">
+            <label for="route-start-scene">
+              CENA INICIAL
+            </label>
+
+            <select id="route-start-scene">
+              <option value="">
+                Nenhuma cena definida
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="route-display-order">
+              ORDEM NO PAINEL
+            </label>
+
+            <input
+              id="route-display-order"
+              type="number"
+              min="0"
+              max="10000"
+              step="1"
+              value="10"
+            >
+          </div>
+        </div>
+      </fieldset>
+
+
+      <fieldset class="form-group">
+        <legend>Cores da interface</legend>
+
+        <div class="route-color-grid">
+          <div class="field">
+            <label for="route-primary-color">
+              COR PRINCIPAL
+            </label>
+
+            <div class="color-field">
+              <input
+                id="route-primary-picker"
+                type="color"
+                value="#e8e8e8"
+              >
+
+              <input
+                id="route-primary-color"
+                type="text"
+                value="#e8e8e8"
+              >
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="route-secondary-color">
+              COR SECUNDÁRIA
+            </label>
+
+            <div class="color-field">
+              <input
+                id="route-secondary-picker"
+                type="color"
+                value="#8a8a8a"
+              >
+
+              <input
+                id="route-secondary-color"
+                type="text"
+                value="#8a8a8a"
+              >
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="route-background-color">
+              FUNDO DA PÁGINA
+            </label>
+
+            <div class="color-field">
+              <input
+                id="route-background-picker"
+                type="color"
+                value="#030303"
+              >
+
+              <input
+                id="route-background-color"
+                type="text"
+                value="#030303"
+              >
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="route-panel-color">
+              FUNDO DOS PAINÉIS
+            </label>
+
+            <div class="color-field">
+              <input
+                id="route-panel-picker"
+                type="color"
+                value="#0c0c0c"
+              >
+
+              <input
+                id="route-panel-color"
+                type="text"
+                value="#0c0c0c"
+              >
+            </div>
+          </div>
+        </div>
+
+
+        <div class="field">
+          <label for="route-background-image">
+            IMAGEM DE FUNDO
+          </label>
+
+          <input
+            id="route-background-image"
+            type="url"
+            maxlength="2000"
+            placeholder="https://..."
+          >
+
+          <small>
+            Pode utilizar uma imagem enviada na biblioteca de mídias.
+          </small>
+        </div>
+
+
+        <div
+          id="route-preview"
+          class="route-preview"
+        >
+          <span>PRÉ-VISUALIZAÇÃO</span>
+
+          <div class="route-preview__panel">
+            <strong id="route-preview-name">
+              NOME DA ROTA
+            </strong>
+
+            <p>
+              Esta é uma amostra das cores aplicadas ao jogo.
+            </p>
+          </div>
+        </div>
+      </fieldset>
+
+
+      <fieldset class="form-group">
+        <legend>Disponibilidade</legend>
+
+        <div class="toggle-grid">
+          <label class="toggle-option">
+            <input
+              id="route-enabled"
+              type="checkbox"
+              checked
+            >
+
+            <span class="toggle-option__control"></span>
+
+            <span>
+              <strong>ROTA ATIVA</strong>
+
+              <small>
+                Rotas desativadas não podem ser carregadas.
+              </small>
+            </span>
+          </label>
+
+          <label class="toggle-option">
+            <input
+              id="route-secret"
+              type="checkbox"
+            >
+
+            <span class="toggle-option__control"></span>
+
+            <span>
+              <strong>ROTA SECRETA</strong>
+
+              <small>
+                Identifica caminhos escondidos do jogo.
+              </small>
+            </span>
+          </label>
+
+          <label class="toggle-option">
+            <input
+              id="route-initially-available"
+              type="checkbox"
+            >
+
+            <span class="toggle-option__control"></span>
+
+            <span>
+              <strong>DISPONÍVEL INICIALMENTE</strong>
+
+              <small>
+                Pode ser acessada sem desbloqueio prévio.
+              </small>
+            </span>
+          </label>
+        </div>
+      </fieldset>
+
+
+      <p
+        id="route-form-message"
+        class="form-message"
+        aria-live="polite"
+      ></p>
+
+
+      <footer class="form-actions">
+        <button
+          class="button button--secondary"
+          type="button"
+          data-close-route-modal
+        >
+          CANCELAR
+        </button>
+
+        <button
+          id="save-route-button"
+          class="button button--primary"
+          type="submit"
+        >
+          SALVAR ROTA
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+
+  <!-- =====================================================
+     AÇÕES DA ROTA
+     ===================================================== -->
+
+<div
+  id="route-actions-modal"
+  class="modal is-hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="route-actions-title"
+>
+  <div
+    class="modal__backdrop"
+    data-close-route-actions
+  ></div>
+
+  <section class="modal__panel modal__panel--small">
+    <header class="modal__header">
+      <div>
+        <p class="modal__eyebrow">
+          AÇÕES DA ROTA
+        </p>
+
+        <h2 id="route-actions-title">
+          Rota
+        </h2>
+      </div>
+
+      <button
+        class="modal__close"
+        type="button"
+        data-close-route-actions
+        aria-label="Fechar"
+      >
+        ×
+      </button>
+    </header>
+
+    <div class="scene-actions">
+      <button
+        id="duplicate-route-button"
+        type="button"
+      >
+        <strong>DUPLICAR ROTA</strong>
+
+        <span>
+          Cria uma cópia desativada desta rota.
+        </span>
+      </button>
+
+      <button
+        id="toggle-route-button"
+        type="button"
+      >
+        <strong>DESATIVAR ROTA</strong>
+
+        <span>
+          Impede temporariamente o uso da rota.
+        </span>
+      </button>
+
+      <button
+        id="delete-route-button"
+        class="scene-action--danger"
+        type="button"
+      >
+        <strong>EXCLUIR ROTA</strong>
+
+        <span>
+          Remove a rota quando ela não estiver sendo utilizada.
+        </span>
+      </button>
+    </div>
+  </section>
+</div>
   <!-- =====================================================
        TEMPLATES
        ===================================================== -->
@@ -2181,6 +2722,74 @@
     </article>
   </template>
 
+  <!-- =====================================================
+     TEMPLATE DA ROTA
+     ===================================================== -->
+
+<template id="route-card-template">
+  <article class="route-card">
+    <div class="route-card__color"></div>
+
+    <div class="route-card__content">
+      <header class="route-card__header">
+        <div>
+          <h3 class="route-card__title">
+            Rota
+          </h3>
+
+          <p class="route-card__code">
+            codigo
+          </p>
+        </div>
+
+        <div class="route-card__badges">
+          <span data-route-badge="secret"></span>
+          <span data-route-badge="initial"></span>
+          <span data-route-badge="state"></span>
+        </div>
+      </header>
+
+      <p class="route-card__description"></p>
+
+      <div class="route-card__details">
+        <span data-route-detail="scene">
+          SEM CENA INICIAL
+        </span>
+
+        <span data-route-detail="order">
+          ORDEM 10
+        </span>
+      </div>
+
+      <div class="route-card__palette">
+        <span data-route-color="primary"></span>
+        <span data-route-color="secondary"></span>
+        <span data-route-color="background"></span>
+        <span data-route-color="panel"></span>
+      </div>
+    </div>
+
+    <div class="route-card__actions">
+      <button
+        class="button button--secondary"
+        type="button"
+        data-route-action="edit"
+      >
+        EDITAR
+      </button>
+
+      <button
+        class="button button--icon"
+        type="button"
+        data-route-action="more"
+        aria-label="Mais ações"
+      >
+        •••
+      </button>
+    </div>
+  </article>
+</template>
+  
   <!-- =====================================================
      TEMPLATE DO CAMINHO
      ===================================================== -->
