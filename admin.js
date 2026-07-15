@@ -8614,6 +8614,154 @@ function validateItemData(itemData) {
   return null;
 }
 
+/* ==========================================================
+   CRIAR E ATUALIZAR ITEM
+   ========================================================== */
+
+async function createItem(itemData) {
+  /*
+    Insere um novo Item na tabela items.
+  */
+  const {
+    data,
+    error
+  } = await state.client
+    .from("items")
+    .insert(itemData)
+    .select(`
+      id,
+      game_id,
+      item_key,
+      name
+    `)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+
+async function updateItem(
+  itemId,
+  itemData
+) {
+  /*
+    O game_id não precisa ser alterado
+    durante a edição.
+  */
+  const {
+    game_id,
+    ...editableData
+  } = itemData;
+
+  /*
+    Atualiza somente o Item selecionado
+    e pertencente ao jogo atual.
+  */
+  const {
+    data,
+    error
+  } = await state.client
+    .from("items")
+    .update(editableData)
+    .eq(
+      "id",
+      itemId
+    )
+    .eq(
+      "game_id",
+      state.game.id
+    )
+    .select(`
+      id,
+      game_id,
+      item_key,
+      name
+    `)
+    .single();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+/* ==========================================================
+   ATUALIZAR LISTA DE ITENS
+   ========================================================== */
+
+async function refreshItems() {
+  showItemListMessage(
+    "ATUALIZANDO ITENS..."
+  );
+
+  /*
+    Consulta novamente todos os Itens
+    pertencentes ao jogo atual.
+  */
+  const {
+    data,
+    error
+  } = await state.client
+    .from("items")
+    .select(`
+      id,
+      game_id,
+      item_key,
+      name,
+      description,
+      admin_description,
+      item_type,
+      image_url,
+      receive_text,
+      use_text,
+      maximum_quantity,
+      is_stackable,
+      is_consumable,
+      is_secret,
+      is_enabled,
+      display_order,
+      created_at,
+      updated_at
+    `)
+    .eq(
+      "game_id",
+      state.game.id
+    )
+    .order(
+      "display_order",
+      {
+        ascending: true
+      }
+    )
+    .order(
+      "name",
+      {
+        ascending: true
+      }
+    );
+
+  if (error) {
+    throw error;
+  }
+
+  /*
+    Substitui a lista antiga pela versão
+    atualizada que veio do Supabase.
+  */
+  state.items =
+    data || [];
+
+  /*
+    Refaz estatísticas, filtros e cartões.
+  */
+  applyItemFilters();
+}
+
 async function handleItemFormSubmit(event) {
   event.preventDefault();
 
@@ -8621,9 +8769,17 @@ async function handleItemFormSubmit(event) {
     return;
   }
 
+  /*
+    Reúne todos os valores preenchidos
+    dentro do formulário.
+  */
   const itemData =
     collectItemFormData();
 
+  /*
+    Confere se os dados estão válidos antes
+    de enviar para o Supabase.
+  */
   const validationError =
     validateItemData(itemData);
 
@@ -8643,15 +8799,28 @@ async function handleItemFormSubmit(event) {
   );
 
   try {
+    /*
+      Caso exista editingItemId, estamos editando
+      um Item já existente.
+    */
     if (state.editingItemId) {
       await updateItem(
         state.editingItemId,
         itemData
       );
     } else {
-      await createItem(itemData);
+      /*
+        Caso contrário, estamos criando
+        um Item novo.
+      */
+      await createItem(
+        itemData
+      );
     }
 
+    /*
+      Recarrega a lista depois do salvamento.
+    */
     await refreshItems();
 
     showItemFormMessage(
@@ -8659,10 +8828,14 @@ async function handleItemFormSubmit(event) {
       "success"
     );
 
-   window.setTimeout(() => {
-  setItemSaving(false);
-  closeItemModal();
-}, 450);
+    /*
+      Aguarda um pequeno momento para o usuário
+      enxergar a mensagem de sucesso.
+    */
+    window.setTimeout(() => {
+      setItemSaving(false);
+      closeItemModal();
+    }, 450);
   } catch (error) {
     console.error(
       "Erro ao salvar item:",
@@ -8670,18 +8843,14 @@ async function handleItemFormSubmit(event) {
     );
 
     showItemFormMessage(
-      formatItemDatabaseError(error),
+      formatItemDatabaseError(
+        error
+      ),
       "error"
     );
-} finally {
-  if (
-    !elements.itemModal.classList.contains(
-      "is-hidden"
-    )
-  ) {
+
     setItemSaving(false);
   }
-}
 }
 
 function setItemSaving(isSaving) {
