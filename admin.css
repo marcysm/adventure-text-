@@ -1914,3 +1914,63 @@ select:focus-visible {
     padding-left: 14px;
   }
 }
+
+
+/* ==========================================================
+   IMAGENS SEM MARGENS OU FUNDO
+   ========================================================== */
+
+.media-card__preview {
+  display: block;
+
+  width: 100%;
+  min-height: 0;
+  height: auto;
+
+  margin: 0;
+  padding: 0;
+
+  overflow: hidden;
+
+  background: transparent;
+  border: 0;
+}
+
+.media-card__preview img {
+  display: block;
+
+  width: 100%;
+  height: auto;
+  max-height: none;
+
+  margin: 0;
+  padding: 0;
+
+  object-fit: contain;
+
+  border: 0;
+}
+
+.block-preview {
+  min-height: 0;
+  padding: 0;
+
+  background: transparent;
+  border: 0;
+}
+
+.block-preview__image {
+  display: block;
+
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  max-height: none;
+
+  margin: 0;
+  padding: 0;
+
+  object-fit: contain;
+
+  border: 0;
+}
