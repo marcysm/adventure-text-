@@ -1627,7 +1627,7 @@ async function loadPanelData() {
   .eq("game_id", state.game.id)
   .order("display_order", {
     ascending: true
-  })
+  }),
 
     state.client
       .from("scenes")
