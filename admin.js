@@ -1882,70 +1882,54 @@ async function loadGame() {
 }
 
 async function loadPanelData() {
- const [
-  routesResult,
-  scenesResult,
-  responsesResult,
-  itemsResult
-] = await Promise.all([
-  state.client
-  .from("routes")
-  .select(`
-    id,
-    game_id,
-    code,
-    name,
-    description,
-    admin_description,
-    primary_color,
-    secondary_color,
-    background_color,
-    panel_color,
-    background_image_url,
-    start_scene_id,
-    is_secret,
-    is_initially_available,
-    is_enabled,
-    display_order,
-    created_at,
-    updated_at
-  `)
-  .eq("game_id", state.game.id)
- .order("display_order", {
-  ascending: true
-}),
+  const [
+    routesResult,
+    scenesResult,
+    responsesResult,
+    itemsResult
+  ] = await Promise.all([
+    /*
+      1. Carrega todas as Rotas do jogo.
+    */
+    state.client
+      .from("routes")
+      .select(`
+        id,
+        game_id,
+        code,
+        name,
+        description,
+        admin_description,
+        primary_color,
+        secondary_color,
+        background_color,
+        panel_color,
+        background_image_url,
+        start_scene_id,
+        is_secret,
+        is_initially_available,
+        is_enabled,
+        display_order,
+        created_at,
+        updated_at
+      `)
+      .eq(
+        "game_id",
+        state.game.id
+      )
+      .order(
+        "display_order",
+        {
+          ascending: true
+        }
+      ),
 
-state.client
-  .from("items")
-  .select(`
-    id,
-    game_id,
-    item_key,
-    name,
-    description,
-    admin_description,
-    item_type,
-    image_url,
-    receive_text,
-    use_text,
-    maximum_quantity,
-    is_stackable,
-    is_consumable,
-    is_secret,
-    is_enabled,
-    display_order,
-    created_at,
-    updated_at
-  `)
-  .eq("game_id", state.game.id)
-  .order("display_order", {
-    ascending: true
-  })
-]);
-
-state.client
-  .from("scenes")
-  .select(`
+    /*
+      2. Carrega todas as Cenas do jogo.
+    */
+    state.client
+      .from("scenes")
+      .select(`
         id,
         game_id,
         route_id,
@@ -1965,11 +1949,22 @@ state.client
         created_at,
         updated_at
       `)
-      .eq("game_id", state.game.id)
-      .order("updated_at", {
-        ascending: false
-      }),
+      .eq(
+        "game_id",
+        state.game.id
+      )
+      .order(
+        "updated_at",
+        {
+          ascending: false
+        }
+      ),
 
+    /*
+      3. Carrega todos os Caminhos.
+      Depois filtramos somente os que pertencem
+      às cenas deste jogo.
+    */
     state.client
       .from("scene_responses")
       .select(`
@@ -1992,14 +1987,66 @@ state.client
         created_at,
         updated_at
       `)
-      .order("priority", {
-        ascending: false
-      })
-      .order("display_order", {
-        ascending: true
-      })
+      .order(
+        "priority",
+        {
+          ascending: false
+        }
+      )
+      .order(
+        "display_order",
+        {
+          ascending: true
+        }
+      ),
+
+    /*
+      4. Carrega todos os Itens do jogo.
+    */
+    state.client
+      .from("items")
+      .select(`
+        id,
+        game_id,
+        item_key,
+        name,
+        description,
+        admin_description,
+        item_type,
+        image_url,
+        receive_text,
+        use_text,
+        maximum_quantity,
+        is_stackable,
+        is_consumable,
+        is_secret,
+        is_enabled,
+        display_order,
+        created_at,
+        updated_at
+      `)
+      .eq(
+        "game_id",
+        state.game.id
+      )
+      .order(
+        "display_order",
+        {
+          ascending: true
+        }
+      )
+      .order(
+        "name",
+        {
+          ascending: true
+        }
+      )
   ]);
 
+  /*
+    Confere individualmente se alguma
+    das quatro consultas falhou.
+  */
   if (routesResult.error) {
     throw routesResult.error;
   }
@@ -2012,10 +2059,13 @@ state.client
     throw responsesResult.error;
   }
 
-   if (itemsResult.error) {
-  throw itemsResult.error;
-}
+  if (itemsResult.error) {
+    throw itemsResult.error;
+  }
 
+  /*
+    Salva Rotas e Cenas no estado do painel.
+  */
   state.routes =
     routesResult.data || [];
 
@@ -2023,22 +2073,33 @@ state.client
     scenesResult.data || [];
 
   /*
-    Mantemos apenas respostas pertencentes às cenas
-    do jogo que está aberto no painel.
+    Cria uma lista com os IDs das cenas
+    pertencentes ao jogo atual.
   */
-  const gameSceneIds = new Set(
-    state.scenes.map(scene => scene.id)
-  );
+  const gameSceneIds =
+    new Set(
+      state.scenes.map(
+        scene => scene.id
+      )
+    );
 
+  /*
+    Mantém somente Caminhos ligados às
+    cenas pertencentes ao jogo atual.
+  */
   state.responses =
     (responsesResult.data || []).filter(
       response =>
-        gameSceneIds.has(response.scene_id)
+        gameSceneIds.has(
+          response.scene_id
+        )
     );
 
-   state.items =
-  itemsResult.data || [];
-   
+  /*
+    Salva os Itens no estado do painel.
+  */
+  state.items =
+    itemsResult.data || [];
 }
 
 
@@ -8329,35 +8390,6 @@ function renderItemImagePreview() {
   );
 }
 
-  const image =
-    document.createElement("img");
-
-  image.src = imageUrl;
-  image.alt = "Pré-visualização do item";
-
-  image.addEventListener(
-    "error",
-    () => {
-      elements.itemImagePreview.replaceChildren();
-
-      const message =
-        document.createElement("p");
-
-      message.textContent =
-        "NÃO FOI POSSÍVEL CARREGAR A IMAGEM";
-
-      elements.itemImagePreview.appendChild(
-        message
-      );
-    }
-  );
-
-  elements.itemImagePreview.appendChild(
-    image
-  );
-}
-
-
 function handleItemNameInput() {
   if (state.editingItemId) {
     return;
@@ -8705,14 +8737,11 @@ function showItemFormMessage(
     message || "";
 }
 
-function handleItemListClick() {
-  /*
-    A lista completa será criada na próxima parte.
-  */
-}
-
-
 function handleItemListClick(event) {
+  /*
+    Descobre se o jogador clicou em um botão
+    de ação dentro de algum cartão de Item.
+  */
   const button =
     event.target.closest(
       "[data-item-action]"
@@ -8722,7 +8751,41 @@ function handleItemListClick(event) {
     return;
   }
 
+  /*
+    Recupera o ID do Item associado ao botão.
+  */
+  const itemId =
+    button.dataset.itemId;
+
+  if (!itemId) {
+    return;
+  }
+
+  /*
+    Executa a ação correspondente ao botão.
+  */
+  switch (
+    button.dataset.itemAction
+  ) {
+    case "edit":
+      openEditItemModal(
+        itemId
+      );
+      break;
+
+    case "more":
+      openItemActionsModal(
+        itemId
+      );
+      break;
+  }
+}
+
+
 function openItemActionsModal(itemId) {
+  /*
+    Localiza o Item usando o ID recebido.
+  */
   const item =
     getItemById(itemId);
 
@@ -8735,14 +8798,24 @@ function openItemActionsModal(itemId) {
     return;
   }
 
+  /*
+    Guarda qual Item está com o menu
+    de ações aberto.
+  */
   state.actionsItemId =
     item.id;
 
+  /*
+    Coloca o nome do Item no título do modal.
+  */
   elements.itemActionsTitle.textContent =
     item.name ||
     item.item_key ||
     "Item";
 
+  /*
+    Muda o texto do botão conforme o estado atual.
+  */
   elements.toggleItemButton
     .querySelector("strong")
     .textContent =
@@ -8757,31 +8830,14 @@ function openItemActionsModal(itemId) {
         ? "Impede temporariamente o uso deste item."
         : "Permite novamente o uso deste item.";
 
+  /*
+    Exibe o modal.
+  */
   elements.itemActionsModal.classList.remove(
     "is-hidden"
   );
 
   updateBodyOverflow();
-}
-   
-  const itemId =
-    button.dataset.itemId;
-
-  if (!itemId) {
-    return;
-  }
-
-  switch (
-    button.dataset.itemAction
-  ) {
-    case "edit":
-      openEditItemModal(itemId);
-      break;
-
-    case "more":
-      openItemActionsModal(itemId);
-      break;
-  }
 }
 
 function getItemById(itemId) {
