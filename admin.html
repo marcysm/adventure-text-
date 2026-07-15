@@ -129,6 +129,14 @@
 </button>
 
       <button
+  class="admin-navigation__item"
+  type="button"
+  data-section="items"
+>
+  ITENS
+</button>
+      
+      <button
         class="admin-navigation__item"
         type="button"
         data-section="map"
@@ -565,6 +573,199 @@
   <div
     id="route-list"
     class="route-list"
+  ></div>
+</section>
+
+    <!-- =====================================================
+     CONTEÚDO: ITENS
+     ===================================================== -->
+
+<section
+  id="items-section"
+  class="admin-section is-hidden"
+>
+  <div class="section-heading">
+    <div>
+      <p class="section-heading__eyebrow">
+        OBJETOS E INVENTÁRIO
+      </p>
+
+      <h2>Itens</h2>
+
+      <p>
+        Cadastre chaves, documentos, pistas, ferramentas
+        e outros objetos que podem ser encontrados durante
+        a história.
+      </p>
+    </div>
+
+    <button
+      id="new-item-button"
+      class="button button--primary"
+      type="button"
+    >
+      + NOVO ITEM
+    </button>
+  </div>
+
+
+  <!-- =================================================
+       ESTATÍSTICAS
+       ================================================= -->
+
+  <div class="scene-statistics">
+    <article>
+      <span>TOTAL</span>
+
+      <strong id="total-items">
+        0
+      </strong>
+    </article>
+
+    <article>
+      <span>ATIVOS</span>
+
+      <strong id="active-items">
+        0
+      </strong>
+    </article>
+
+    <article>
+      <span>SECRETOS</span>
+
+      <strong id="secret-items">
+        0
+      </strong>
+    </article>
+
+    <article>
+      <span>CONSUMÍVEIS</span>
+
+      <strong id="consumable-items">
+        0
+      </strong>
+    </article>
+  </div>
+
+
+  <!-- =================================================
+       FILTROS
+       ================================================= -->
+
+  <section class="scene-filters item-filters">
+    <div class="field field--search">
+      <label for="item-search">
+        PESQUISAR
+      </label>
+
+      <input
+        id="item-search"
+        type="search"
+        placeholder="Nome, identificador ou descrição..."
+        autocomplete="off"
+      >
+    </div>
+
+    <div class="field">
+      <label for="item-type-filter">
+        TIPO
+      </label>
+
+      <select id="item-type-filter">
+        <option value="">
+          Todos
+        </option>
+
+        <option value="general">
+          Geral
+        </option>
+
+        <option value="key">
+          Chave
+        </option>
+
+        <option value="document">
+          Documento
+        </option>
+
+        <option value="tool">
+          Ferramenta
+        </option>
+
+        <option value="weapon">
+          Arma
+        </option>
+
+        <option value="clue">
+          Pista
+        </option>
+
+        <option value="consumable">
+          Consumível
+        </option>
+
+        <option value="quest">
+          Item de missão
+        </option>
+
+        <option value="secret">
+          Secreto
+        </option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="item-status-filter">
+        ESTADO
+      </label>
+
+      <select id="item-status-filter">
+        <option value="">
+          Todos
+        </option>
+
+        <option value="active">
+          Ativos
+        </option>
+
+        <option value="inactive">
+          Desativados
+        </option>
+
+        <option value="secret">
+          Secretos
+        </option>
+
+        <option value="consumable">
+          Consumíveis
+        </option>
+
+        <option value="stackable">
+          Empilháveis
+        </option>
+      </select>
+    </div>
+  </section>
+
+
+  <!-- =================================================
+       MENSAGEM DA LISTA
+       ================================================= -->
+
+  <p
+    id="item-list-message"
+    class="scene-list-message"
+    aria-live="polite"
+  ></p>
+
+
+  <!-- =================================================
+       LISTA DE ITENS
+       ================================================= -->
+
+  <div
+    id="item-list"
+    class="item-list"
   ></div>
 </section>
   </main>
@@ -2663,6 +2864,523 @@
     </div>
   </section>
 </div>
+
+  <!-- =====================================================
+     MODAL DE ITEM
+     ===================================================== -->
+
+<div
+  id="item-modal"
+  class="modal is-hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="item-modal-title"
+>
+  <div
+    class="modal__backdrop"
+    data-close-item-modal
+  ></div>
+
+  <section class="modal__panel modal__panel--large">
+    <header class="modal__header">
+      <div>
+        <p class="modal__eyebrow">
+          OBJETO DO JOGO
+        </p>
+
+        <h2 id="item-modal-title">
+          Novo item
+        </h2>
+      </div>
+
+      <button
+        class="modal__close"
+        type="button"
+        data-close-item-modal
+        aria-label="Fechar formulário"
+      >
+        ×
+      </button>
+    </header>
+
+
+    <form
+      id="item-form"
+      class="scene-form"
+    >
+      <input
+        id="item-id"
+        type="hidden"
+      >
+
+
+      <!-- ===============================================
+           IDENTIFICAÇÃO
+           =============================================== -->
+
+      <fieldset class="form-group">
+        <legend>Identificação</legend>
+
+        <div class="form-grid form-grid--two">
+          <div class="field">
+            <label for="item-name">
+              NOME DO ITEM *
+            </label>
+
+            <input
+              id="item-name"
+              type="text"
+              maxlength="150"
+              required
+              placeholder="Ex.: Chave enferrujada"
+            >
+
+            <small>
+              Este nome poderá aparecer no inventário do jogador.
+            </small>
+          </div>
+
+          <div class="field">
+            <label for="item-key">
+              IDENTIFICADOR INTERNO *
+            </label>
+
+            <input
+              id="item-key"
+              type="text"
+              maxlength="100"
+              required
+              placeholder="chave_enferrujada"
+            >
+
+            <small>
+              Use letras minúsculas, números e sublinhados.
+            </small>
+          </div>
+        </div>
+
+
+        <div class="form-grid form-grid--two">
+          <div class="field">
+            <label for="item-type">
+              TIPO DO ITEM
+            </label>
+
+            <select id="item-type">
+              <option value="general">
+                Geral
+              </option>
+
+              <option value="key">
+                Chave
+              </option>
+
+              <option value="document">
+                Documento
+              </option>
+
+              <option value="tool">
+                Ferramenta
+              </option>
+
+              <option value="weapon">
+                Arma
+              </option>
+
+              <option value="clue">
+                Pista
+              </option>
+
+              <option value="consumable">
+                Consumível
+              </option>
+
+              <option value="quest">
+                Item de missão
+              </option>
+
+              <option value="secret">
+                Secreto
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="item-display-order">
+              ORDEM NO PAINEL
+            </label>
+
+            <input
+              id="item-display-order"
+              type="number"
+              min="0"
+              max="10000"
+              step="1"
+              value="10"
+            >
+          </div>
+        </div>
+
+
+        <div class="field">
+          <label for="item-description">
+            DESCRIÇÃO PARA O JOGADOR
+          </label>
+
+          <textarea
+            id="item-description"
+            rows="4"
+            maxlength="3000"
+            placeholder="Ex.: Uma pequena chave coberta por ferrugem."
+          ></textarea>
+
+          <small>
+            Esta descrição poderá aparecer no inventário.
+          </small>
+        </div>
+
+
+        <div class="field">
+          <label for="item-admin-description">
+            DESCRIÇÃO ADMINISTRATIVA
+          </label>
+
+          <textarea
+            id="item-admin-description"
+            rows="3"
+            maxlength="3000"
+            placeholder="Explique para que o item serve na história..."
+          ></textarea>
+
+          <small>
+            Este texto aparece apenas no painel administrativo.
+          </small>
+        </div>
+      </fieldset>
+
+
+      <!-- ===============================================
+           IMAGEM
+           =============================================== -->
+
+      <fieldset class="form-group">
+        <legend>Imagem do item</legend>
+
+        <div class="field">
+          <label for="item-image-url">
+            ENDEREÇO DA IMAGEM
+          </label>
+
+          <input
+            id="item-image-url"
+            type="url"
+            maxlength="2000"
+            placeholder="https://..."
+          >
+
+          <small>
+            A imagem poderá ser selecionada na biblioteca
+            de mídias em uma etapa posterior.
+          </small>
+        </div>
+
+
+        <div
+          id="item-image-preview"
+          class="item-image-preview"
+        >
+          <p>
+            NENHUMA IMAGEM SELECIONADA
+          </p>
+        </div>
+      </fieldset>
+
+
+      <!-- ===============================================
+           MENSAGENS
+           =============================================== -->
+
+      <fieldset class="form-group">
+        <legend>Mensagens do item</legend>
+
+        <div class="field">
+          <label for="item-receive-text">
+            TEXTO AO RECEBER
+          </label>
+
+          <textarea
+            id="item-receive-text"
+            rows="3"
+            maxlength="1000"
+            placeholder="Ex.: Você guardou a chave enferrujada."
+          ></textarea>
+
+          <small>
+            Pode ser mostrado quando o jogador recebe o item.
+          </small>
+        </div>
+
+
+        <div class="field">
+          <label for="item-use-text">
+            TEXTO AO USAR
+          </label>
+
+          <textarea
+            id="item-use-text"
+            rows="3"
+            maxlength="1000"
+            placeholder="Ex.: A chave gira com dificuldade na fechadura."
+          ></textarea>
+
+          <small>
+            Pode ser mostrado quando o item é utilizado.
+          </small>
+        </div>
+      </fieldset>
+
+
+      <!-- ===============================================
+           QUANTIDADE
+           =============================================== -->
+
+      <fieldset class="form-group">
+        <legend>Quantidade e comportamento</legend>
+
+        <div class="form-grid form-grid--two">
+          <div class="field">
+            <label for="item-maximum-quantity">
+              QUANTIDADE MÁXIMA
+            </label>
+
+            <input
+              id="item-maximum-quantity"
+              type="number"
+              min="1"
+              max="999"
+              step="1"
+              value="1"
+            >
+
+            <small>
+              Limite que o jogador poderá carregar.
+            </small>
+          </div>
+
+          <div class="field">
+            <label>
+              COMPORTAMENTO
+            </label>
+
+            <p class="field-description">
+              Defina como o objeto se comporta dentro
+              do inventário.
+            </p>
+          </div>
+        </div>
+
+
+        <div class="toggle-grid">
+          <label class="toggle-option">
+            <input
+              id="item-stackable"
+              type="checkbox"
+            >
+
+            <span class="toggle-option__control"></span>
+
+            <span>
+              <strong>ITEM EMPILHÁVEL</strong>
+
+              <small>
+                Permite carregar mais de uma unidade.
+              </small>
+            </span>
+          </label>
+
+
+          <label class="toggle-option">
+            <input
+              id="item-consumable"
+              type="checkbox"
+            >
+
+            <span class="toggle-option__control"></span>
+
+            <span>
+              <strong>ITEM CONSUMÍVEL</strong>
+
+              <small>
+                Pode ser removido depois de utilizado.
+              </small>
+            </span>
+          </label>
+        </div>
+      </fieldset>
+
+
+      <!-- ===============================================
+           DISPONIBILIDADE
+           =============================================== -->
+
+      <fieldset class="form-group">
+        <legend>Disponibilidade</legend>
+
+        <div class="toggle-grid">
+          <label class="toggle-option">
+            <input
+              id="item-enabled"
+              type="checkbox"
+              checked
+            >
+
+            <span class="toggle-option__control"></span>
+
+            <span>
+              <strong>ITEM ATIVO</strong>
+
+              <small>
+                Itens desativados são ignorados pelo jogo.
+              </small>
+            </span>
+          </label>
+
+
+          <label class="toggle-option">
+            <input
+              id="item-secret"
+              type="checkbox"
+            >
+
+            <span class="toggle-option__control"></span>
+
+            <span>
+              <strong>ITEM SECRETO</strong>
+
+              <small>
+                Identifica objetos escondidos ou especiais.
+              </small>
+            </span>
+          </label>
+        </div>
+      </fieldset>
+
+
+      <!-- ===============================================
+           MENSAGEM DO FORMULÁRIO
+           =============================================== -->
+
+      <p
+        id="item-form-message"
+        class="form-message"
+        aria-live="polite"
+      ></p>
+
+
+      <!-- ===============================================
+           AÇÕES DO FORMULÁRIO
+           =============================================== -->
+
+      <footer class="form-actions">
+        <button
+          class="button button--secondary"
+          type="button"
+          data-close-item-modal
+        >
+          CANCELAR
+        </button>
+
+        <button
+          id="save-item-button"
+          class="button button--primary"
+          type="submit"
+        >
+          SALVAR ITEM
+        </button>
+      </footer>
+    </form>
+  </section>
+</div>
+
+  <!-- =====================================================
+     MENU DE AÇÕES DO ITEM
+     ===================================================== -->
+
+<div
+  id="item-actions-modal"
+  class="modal is-hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="item-actions-title"
+>
+  <div
+    class="modal__backdrop"
+    data-close-item-actions
+  ></div>
+
+  <section class="modal__panel modal__panel--small">
+    <header class="modal__header">
+      <div>
+        <p class="modal__eyebrow">
+          AÇÕES DO ITEM
+        </p>
+
+        <h2 id="item-actions-title">
+          Item
+        </h2>
+      </div>
+
+      <button
+        class="modal__close"
+        type="button"
+        data-close-item-actions
+        aria-label="Fechar"
+      >
+        ×
+      </button>
+    </header>
+
+
+    <div class="scene-actions">
+      <button
+        id="duplicate-item-button"
+        type="button"
+      >
+        <strong>DUPLICAR ITEM</strong>
+
+        <span>
+          Cria uma cópia desativada deste item.
+        </span>
+      </button>
+
+
+      <button
+        id="toggle-item-button"
+        type="button"
+      >
+        <strong>DESATIVAR ITEM</strong>
+
+        <span>
+          Impede temporariamente o uso deste item.
+        </span>
+      </button>
+
+
+      <button
+        id="delete-item-button"
+        class="scene-action--danger"
+        type="button"
+      >
+        <strong>EXCLUIR ITEM</strong>
+
+        <span>
+          Remove o item quando ele não estiver sendo utilizado.
+        </span>
+      </button>
+    </div>
+  </section>
+</div>
+  
   <!-- =====================================================
        TEMPLATES
        ===================================================== -->
@@ -2724,6 +3442,91 @@
     </article>
   </template>
 
+  <!-- =====================================================
+     TEMPLATE DO ITEM
+     ===================================================== -->
+
+<template id="item-card-template">
+  <article class="item-card">
+    <div class="item-card__image">
+      <span class="item-card__image-placeholder">
+        ITEM
+      </span>
+
+      <img
+        class="item-card__image-element is-hidden"
+        src=""
+        alt=""
+      >
+    </div>
+
+
+    <div class="item-card__content">
+      <header class="item-card__header">
+        <div>
+          <h3 class="item-card__title">
+            Item
+          </h3>
+
+          <p class="item-card__key">
+            item
+          </p>
+        </div>
+
+        <div class="item-card__badges">
+          <span data-item-badge="type"></span>
+
+          <span data-item-badge="secret"></span>
+
+          <span data-item-badge="consumable"></span>
+
+          <span data-item-badge="state"></span>
+        </div>
+      </header>
+
+
+      <p class="item-card__description">
+        Nenhuma descrição cadastrada.
+      </p>
+
+
+      <div class="item-card__details">
+        <span data-item-detail="quantity">
+          MÁXIMO: 1
+        </span>
+
+        <span data-item-detail="stackable">
+          ITEM ÚNICO
+        </span>
+
+        <span data-item-detail="order">
+          ORDEM 10
+        </span>
+      </div>
+    </div>
+
+
+    <div class="item-card__actions">
+      <button
+        class="button button--secondary"
+        type="button"
+        data-item-action="edit"
+      >
+        EDITAR
+      </button>
+
+      <button
+        class="button button--icon"
+        type="button"
+        data-item-action="more"
+        aria-label="Mais ações"
+      >
+        •••
+      </button>
+    </div>
+  </article>
+</template>
+  
   <!-- =====================================================
      TEMPLATE DA ROTA
      ===================================================== -->
