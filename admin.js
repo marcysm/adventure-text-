@@ -1602,7 +1602,7 @@ async function loadPanelData() {
     scenesResult,
     responsesResult
   ] = await Promise.all([
-   state.client
+  state.client
   .from("routes")
   .select(`
     id,
@@ -1629,9 +1629,9 @@ async function loadPanelData() {
     ascending: true
   }),
 
-    state.client
-      .from("scenes")
-      .select(`
+state.client
+  .from("scenes")
+  .select(`
         id,
         game_id,
         route_id,
