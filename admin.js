@@ -1626,9 +1626,12 @@ elements.navigationItems.forEach(
   );
 
   elements.itemName.addEventListener(
-    "input",
-    handleItemNameInput
-  );
+  "input",
+  event => {
+    handleItemNameInput(event);
+    renderItemImagePreview();
+  }
+);
 
   elements.itemKey.addEventListener(
     "input",
@@ -7648,9 +7651,86 @@ function getSceneById(sceneId) {
    ========================================================== */
 
 function applyItemFilters() {
-  state.filteredItems =
-    [...state.items];
+  const searchTerm =
+    normalizeText(
+      elements.itemSearch.value
+    );
 
+  const typeFilter =
+    elements.itemTypeFilter.value;
+
+  const statusFilter =
+    elements.itemStatusFilter.value;
+
+  state.filteredItems =
+    state.items.filter(item => {
+      const searchableContent =
+        normalizeText(
+          [
+            item.name,
+            item.item_key,
+            item.description,
+            item.admin_description,
+            item.item_type
+          ]
+            .filter(Boolean)
+            .join(" ")
+        );
+
+      const matchesSearch =
+        !searchTerm ||
+        searchableContent.includes(
+          searchTerm
+        );
+
+      const matchesType =
+        !typeFilter ||
+        item.item_type === typeFilter;
+
+      let matchesStatus = true;
+
+      switch (statusFilter) {
+        case "active":
+          matchesStatus =
+            item.is_enabled === true;
+          break;
+
+        case "inactive":
+          matchesStatus =
+            item.is_enabled === false;
+          break;
+
+        case "secret":
+          matchesStatus =
+            item.is_secret === true;
+          break;
+
+        case "consumable":
+          matchesStatus =
+            item.is_consumable === true;
+          break;
+
+        case "stackable":
+          matchesStatus =
+            item.is_stackable === true;
+          break;
+
+        default:
+          matchesStatus = true;
+      }
+
+      return (
+        matchesSearch &&
+        matchesType &&
+        matchesStatus
+      );
+    });
+
+  updateItemStatistics();
+  renderItemList();
+}
+
+function updateItemStatistics() {
   elements.totalItems.textContent =
     String(state.items.length);
 
@@ -7674,47 +7754,435 @@ function applyItemFilters() {
         item => item.is_consumable
       ).length
     );
+}
 
+/* ==========================================================
+   LISTA DE ITENS
+   ========================================================== */
+
+function renderItemList() {
   elements.itemList.replaceChildren();
 
-  const message =
-    state.items.length === 0
-      ? "NENHUM ITEM CADASTRADO."
-      : `${state.items.length} ITEM(NS) CARREGADO(S).`;
+  if (
+    state.filteredItems.length === 0
+  ) {
+    const empty =
+      document.createElement("div");
 
-  elements.itemListMessage.textContent =
-    message;
+    empty.className =
+      "item-list__empty";
+
+    empty.textContent =
+      "Nenhum item corresponde aos filtros selecionados.";
+
+    elements.itemList.appendChild(
+      empty
+    );
+
+    showItemListMessage(
+      "NENHUM ITEM ENCONTRADO."
+    );
+
+    return;
+  }
+
+  const fragment =
+    document.createDocumentFragment();
+
+  state.filteredItems.forEach(item => {
+    fragment.appendChild(
+      createItemCard(item)
+    );
+  });
+
+  elements.itemList.appendChild(
+    fragment
+  );
+
+  showItemListMessage(
+    `${state.filteredItems.length} ITEM(NS) EXIBIDO(S).`
+  );
 }
 
 
+function createItemCard(item) {
+  const fragment =
+    elements.itemCardTemplate.content
+      .cloneNode(true);
+
+  const card =
+    fragment.querySelector(
+      ".item-card"
+    );
+
+  const imagePlaceholder =
+    fragment.querySelector(
+      ".item-card__image-placeholder"
+    );
+
+  const imageElement =
+    fragment.querySelector(
+      ".item-card__image-element"
+    );
+
+  const title =
+    fragment.querySelector(
+      ".item-card__title"
+    );
+
+  const key =
+    fragment.querySelector(
+      ".item-card__key"
+    );
+
+  const description =
+    fragment.querySelector(
+      ".item-card__description"
+    );
+
+  const typeBadge =
+    fragment.querySelector(
+      '[data-item-badge="type"]'
+    );
+
+  const secretBadge =
+    fragment.querySelector(
+      '[data-item-badge="secret"]'
+    );
+
+  const consumableBadge =
+    fragment.querySelector(
+      '[data-item-badge="consumable"]'
+    );
+
+  const stateBadge =
+    fragment.querySelector(
+      '[data-item-badge="state"]'
+    );
+
+  const quantityDetail =
+    fragment.querySelector(
+      '[data-item-detail="quantity"]'
+    );
+
+  const stackableDetail =
+    fragment.querySelector(
+      '[data-item-detail="stackable"]'
+    );
+
+  const orderDetail =
+    fragment.querySelector(
+      '[data-item-detail="order"]'
+    );
+
+  const editButton =
+    fragment.querySelector(
+      '[data-item-action="edit"]'
+    );
+
+  const moreButton =
+    fragment.querySelector(
+      '[data-item-action="more"]'
+    );
+
+  card.dataset.itemId =
+    item.id;
+
+  card.classList.toggle(
+    "is-inactive",
+    !item.is_enabled
+  );
+
+  title.textContent =
+    item.name ||
+    "Item sem nome";
+
+  key.textContent =
+    item.item_key ||
+    "sem_identificador";
+
+  description.textContent =
+    item.admin_description ||
+    item.description ||
+    "Nenhuma descrição cadastrada.";
+
+  typeBadge.textContent =
+    formatItemType(
+      item.item_type
+    );
+
+  secretBadge.textContent =
+    item.is_secret
+      ? "SECRETO"
+      : "";
+
+  consumableBadge.textContent =
+    item.is_consumable
+      ? "CONSUMÍVEL"
+      : "";
+
+  stateBadge.textContent =
+    item.is_enabled
+      ? "ATIVO"
+      : "DESATIVADO";
+
+  quantityDetail.textContent =
+    `MÁXIMO: ${
+      Number(
+        item.maximum_quantity
+      ) || 1
+    }`;
+
+  stackableDetail.textContent =
+    item.is_stackable
+      ? "EMPILHÁVEL"
+      : "ITEM ÚNICO";
+
+  orderDetail.textContent =
+    `ORDEM ${
+      Number(item.display_order) || 0
+    }`;
+
+  if (
+    item.image_url &&
+    isValidHttpUrl(item.image_url)
+  ) {
+    imageElement.src =
+      item.image_url;
+
+    imageElement.alt =
+      item.name ||
+      "Imagem do item";
+
+    imageElement.classList.remove(
+      "is-hidden"
+    );
+
+    imagePlaceholder.classList.add(
+      "is-hidden"
+    );
+
+    imageElement.addEventListener(
+      "error",
+      () => {
+        imageElement.classList.add(
+          "is-hidden"
+        );
+
+        imagePlaceholder.classList.remove(
+          "is-hidden"
+        );
+      }
+    );
+  }
+
+  editButton.dataset.itemId =
+    item.id;
+
+  moreButton.dataset.itemId =
+    item.id;
+
+  return fragment;
+}
+
+
+function formatItemType(itemType) {
+  const names = {
+    general: "GERAL",
+    key: "CHAVE",
+    document: "DOCUMENTO",
+    tool: "FERRAMENTA",
+    weapon: "ARMA",
+    clue: "PISTA",
+    consumable: "CONSUMÍVEL",
+    quest: "MISSÃO",
+    secret: "SECRETO"
+  };
+
+  return (
+    names[itemType] ||
+    String(itemType || "GERAL")
+      .toLocaleUpperCase("pt-BR")
+  );
+}
+
+function showItemListMessage(
+  message,
+  type = ""
+) {
+  elements.itemListMessage.className =
+    "scene-list-message";
+
+  if (type) {
+    elements.itemListMessage.classList.add(
+      `is-${type}`
+    );
+  }
+
+  elements.itemListMessage.textContent =
+    message || "";
+}
 function openNewItemModal() {
   state.editingItemId = null;
 
-  elements.itemForm.reset();
-
-  elements.itemId.value = "";
-  elements.itemDisplayOrder.value = "10";
-  elements.itemMaximumQuantity.value = "1";
-  elements.itemEnabled.checked = true;
-  elements.itemStackable.checked = false;
-  elements.itemConsumable.checked = false;
-  elements.itemSecret.checked = false;
+  resetItemForm();
 
   elements.itemModalTitle.textContent =
     "Novo item";
 
-  elements.itemFormMessage.textContent =
-    "";
+  elements.itemKey.disabled =
+    false;
 
-  renderItemImagePreview();
+  openItemModal();
+}
 
+
+function openEditItemModal(itemId) {
+  const item =
+    getItemById(itemId);
+
+  if (!item) {
+    showItemListMessage(
+      "O item selecionado não foi encontrado.",
+      "error"
+    );
+
+    return;
+  }
+
+  state.editingItemId =
+    item.id;
+
+  fillItemForm(item);
+
+  elements.itemModalTitle.textContent =
+    "Editar item";
+
+  elements.itemKey.disabled =
+    false;
+
+  openItemModal();
+}
+
+
+function openItemModal() {
   elements.itemModal.classList.remove(
     "is-hidden"
   );
 
   updateBodyOverflow();
+
+  window.setTimeout(() => {
+    elements.itemName.focus();
+  }, 30);
 }
 
+function resetItemForm() {
+  elements.itemForm.reset();
+
+  elements.itemId.value = "";
+
+  elements.itemType.value =
+    "general";
+
+  elements.itemDisplayOrder.value =
+    "10";
+
+  elements.itemMaximumQuantity.value =
+    "1";
+
+  elements.itemStackable.checked =
+    false;
+
+  elements.itemConsumable.checked =
+    false;
+
+  elements.itemEnabled.checked =
+    true;
+
+  elements.itemSecret.checked =
+    false;
+
+  elements.itemFormMessage.className =
+    "form-message";
+
+  elements.itemFormMessage.textContent =
+    "";
+
+  elements.itemKey.disabled =
+    false;
+
+  setItemSaving(false);
+
+  updateItemQuantityInterface();
+  renderItemImagePreview();
+}
+
+
+function fillItemForm(item) {
+  elements.itemId.value =
+    item.id;
+
+  elements.itemName.value =
+    item.name || "";
+
+  elements.itemKey.value =
+    item.item_key || "";
+
+  elements.itemType.value =
+    item.item_type ||
+    "general";
+
+  elements.itemDisplayOrder.value =
+    String(
+      Number(item.display_order) || 0
+    );
+
+  elements.itemDescription.value =
+    item.description || "";
+
+  elements.itemAdminDescription.value =
+    item.admin_description || "";
+
+  elements.itemImageUrl.value =
+    item.image_url || "";
+
+  elements.itemReceiveText.value =
+    item.receive_text || "";
+
+  elements.itemUseText.value =
+    item.use_text || "";
+
+  elements.itemMaximumQuantity.value =
+    String(
+      Number(
+        item.maximum_quantity
+      ) || 1
+    );
+
+  elements.itemStackable.checked =
+    item.is_stackable === true;
+
+  elements.itemConsumable.checked =
+    item.is_consumable === true;
+
+  elements.itemEnabled.checked =
+    item.is_enabled === true;
+
+  elements.itemSecret.checked =
+    item.is_secret === true;
+
+  elements.itemFormMessage.className =
+    "form-message";
+
+  elements.itemFormMessage.textContent =
+    "";
+
+  setItemSaving(false);
+
+  updateItemQuantityInterface();
+  renderItemImagePreview();
+}
 
 function closeItemModal() {
   if (state.isSavingItem) {
@@ -7786,6 +8254,51 @@ function renderItemImagePreview() {
     return;
   }
 
+  if (!isValidHttpUrl(imageUrl)) {
+    const message =
+      document.createElement("p");
+
+    message.textContent =
+      "O ENDEREÇO DA IMAGEM NÃO É VÁLIDO";
+
+    elements.itemImagePreview.appendChild(
+      message
+    );
+
+    return;
+  }
+
+  const image =
+    document.createElement("img");
+
+  image.src = imageUrl;
+
+  image.alt =
+    elements.itemName.value.trim() ||
+    "Pré-visualização do item";
+
+  image.addEventListener(
+    "error",
+    () => {
+      elements.itemImagePreview.replaceChildren();
+
+      const message =
+        document.createElement("p");
+
+      message.textContent =
+        "NÃO FOI POSSÍVEL CARREGAR A IMAGEM";
+
+      elements.itemImagePreview.appendChild(
+        message
+      );
+    }
+  );
+
+  elements.itemImagePreview.appendChild(
+    image
+  );
+}
+
   const image =
     document.createElement("img");
 
@@ -7851,6 +8364,10 @@ function normalizeItemKey(value) {
 
 
 function updateItemQuantityInterface() {
+  if (state.isSavingItem) {
+    return;
+  }
+
   if (!elements.itemStackable.checked) {
     elements.itemMaximumQuantity.value =
       "1";
@@ -7885,6 +8402,58 @@ async function handleItemFormSubmit(event) {
     "O salvamento será ativado na próxima parte da etapa.";
 }
 
+function setItemSaving(isSaving) {
+  state.isSavingItem =
+    isSaving;
+
+  elements.itemForm
+    .querySelectorAll(
+      "input, textarea, select, button"
+    )
+    .forEach(control => {
+      control.disabled =
+        isSaving;
+    });
+
+  if (!isSaving) {
+    elements.itemKey.disabled =
+      false;
+
+    updateItemQuantityInterface();
+  }
+
+  elements.saveItemButton.textContent =
+    isSaving
+      ? "SALVANDO..."
+      : "SALVAR ITEM";
+}
+
+
+function clearItemFormMessage() {
+  elements.itemFormMessage.className =
+    "form-message";
+
+  elements.itemFormMessage.textContent =
+    "";
+}
+
+
+function showItemFormMessage(
+  message,
+  type = ""
+) {
+  elements.itemFormMessage.className =
+    "form-message";
+
+  if (type) {
+    elements.itemFormMessage.classList.add(
+      `is-${type}`
+    );
+  }
+
+  elements.itemFormMessage.textContent =
+    message || "";
+}
 
 function handleItemListClick() {
   /*
@@ -7893,12 +8462,83 @@ function handleItemListClick() {
 }
 
 
-function duplicateSelectedItem() {
-  /*
-    Será implementado na parte 13D-3.
-  */
+function handleItemListClick(event) {
+  const button =
+    event.target.closest(
+      "[data-item-action]"
+    );
+
+  if (!button) {
+    return;
+  }
+
+function openItemActionsModal(itemId) {
+  const item =
+    getItemById(itemId);
+
+  if (!item) {
+    showItemListMessage(
+      "O item selecionado não foi encontrado.",
+      "error"
+    );
+
+    return;
+  }
+
+  state.actionsItemId =
+    item.id;
+
+  elements.itemActionsTitle.textContent =
+    item.name ||
+    item.item_key ||
+    "Item";
+
+  elements.toggleItemButton
+    .querySelector("strong")
+    .textContent =
+      item.is_enabled
+        ? "DESATIVAR ITEM"
+        : "ATIVAR ITEM";
+
+  elements.toggleItemButton
+    .querySelector("span")
+    .textContent =
+      item.is_enabled
+        ? "Impede temporariamente o uso deste item."
+        : "Permite novamente o uso deste item.";
+
+  elements.itemActionsModal.classList.remove(
+    "is-hidden"
+  );
+
+  updateBodyOverflow();
+}
+   
+  const itemId =
+    button.dataset.itemId;
+
+  if (!itemId) {
+    return;
+  }
+
+  switch (
+    button.dataset.itemAction
+  ) {
+    case "edit":
+      openEditItemModal(itemId);
+      break;
+
+    case "more":
+      openItemActionsModal(itemId);
+      break;
+  }
 }
 
+function getItemById(itemId) {
+  return state.items.find(
+    item => item.id === itemId
+  ) || null;
+}
 
 function toggleSelectedItem() {
   /*
