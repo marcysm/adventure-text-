@@ -988,24 +988,10 @@ function configureEvents() {
     handleMediaLibraryListClick
   );
 
-  document.addEventListener("keydown", event => {
-  /*
-    Este evento verifica todas as teclas pressionadas
-    dentro do painel administrativo.
-  */
-
+document.addEventListener("keydown", event => {
   if (event.key !== "Escape") {
-    /*
-      Se a tecla apertada não for ESC,
-      o código para aqui e não fecha nada.
-    */
     return;
   }
-
-  /*
-    Ao apertar ESC, fechamos primeiro os modais
-    que podem estar por cima de outros modais.
-  */
 
   closeMediaLibrary();
 
