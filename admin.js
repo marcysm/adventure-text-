@@ -7541,19 +7541,21 @@ function formatMediaError(error) {
   }
 
   if (
-    lowerMessage.includes(
-      "informe o nome da rota"
-    ) ||
-    lowerMessage.includes(
-      "informe o código interno da rota"
-    ) ||
-    lowerMessage.includes(
-      "imagem de fundo precisa"
-    )
-  ) {
-    return message;
-  }
-   
+  lowerMessage.includes(
+    "informe o nome da rota"
+  ) ||
+  lowerMessage.includes(
+    "informe o código interno da rota"
+  ) ||
+  lowerMessage.includes(
+    "imagem de fundo precisa"
+  )
+) {
+  return message;
+}
+
+return message;
+}
 
 /* ==========================================================
    NAVEGAÇÃO ADMINISTRATIVA
