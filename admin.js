@@ -9213,6 +9213,149 @@ async function deleteSelectedItem() {
 }
 
 /* ==========================================================
+   ERROS DO EDITOR DE ITENS
+   ========================================================== */
+
+function formatItemDatabaseError(error) {
+  /*
+    Tenta recuperar a mensagem em qualquer
+    formato devolvido pelo Supabase.
+  */
+  const message =
+    String(
+      error?.message ||
+      error?.details ||
+      error?.hint ||
+      error ||
+      "Não foi possível concluir a operação."
+    );
+
+  const lowerMessage =
+    message.toLocaleLowerCase(
+      "pt-BR"
+    );
+
+  /*
+    Identificador duplicado.
+  */
+  if (
+    lowerMessage.includes(
+      "items_game_item_key_unique"
+    ) ||
+    (
+      lowerMessage.includes(
+        "duplicate key value"
+      ) &&
+      lowerMessage.includes(
+        "item_key"
+      )
+    )
+  ) {
+    return (
+      "Já existe um item com esse identificador."
+    );
+  }
+
+  /*
+    Tipo de Item inválido.
+  */
+  if (
+    lowerMessage.includes(
+      "items_item_type_check"
+    )
+  ) {
+    return (
+      "O tipo selecionado não é permitido."
+    );
+  }
+
+  /*
+    Quantidade fora dos limites.
+  */
+  if (
+    lowerMessage.includes(
+      "items_maximum_quantity_check"
+    )
+  ) {
+    return (
+      "A quantidade máxima deve estar entre 1 e 999."
+    );
+  }
+
+  /*
+    Item ligado a inventários ou outros registros.
+  */
+  if (
+    lowerMessage.includes(
+      "foreign key constraint"
+    ) ||
+    lowerMessage.includes(
+      "violates foreign key"
+    )
+  ) {
+    return (
+      "Este item já está sendo utilizado em uma partida " +
+      "ou em outra parte do jogo. Desative o item em vez de excluí-lo."
+    );
+  }
+
+  /*
+    Problema de permissão ou RLS.
+  */
+  if (
+    lowerMessage.includes(
+      "row-level security"
+    ) ||
+    lowerMessage.includes(
+      "permission denied"
+    ) ||
+    lowerMessage.includes(
+      "not authorized"
+    )
+  ) {
+    return (
+      "Sua conta não possui permissão para alterar este item."
+    );
+  }
+
+  /*
+    Função SQL de duplicação ausente.
+  */
+  if (
+    lowerMessage.includes(
+      "duplicate_item"
+    ) &&
+    (
+      lowerMessage.includes(
+        "does not exist"
+      ) ||
+      lowerMessage.includes(
+        "could not find"
+      )
+    )
+  ) {
+    return (
+      "A função de duplicação de Itens ainda não existe no Supabase."
+    );
+  }
+
+  /*
+    Item não encontrado.
+  */
+  if (
+    lowerMessage.includes(
+      "item não encontrado"
+    )
+  ) {
+    return (
+      "O item selecionado não foi encontrado."
+    );
+  }
+
+  return message;
+}
+
+/* ==========================================================
    UTILIDADES
    ========================================================== */
 
