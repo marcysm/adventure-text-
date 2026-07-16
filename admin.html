@@ -2239,6 +2239,180 @@
         </div>
       </fieldset>
 
+      <!-- ===============================================
+     ITENS E INVENTÁRIO
+     =============================================== -->
+
+<fieldset class="form-group">
+  <legend>Itens e inventário</legend>
+
+  <p class="form-group__description">
+    Configure objetos exigidos, entregues ou removidos
+    quando este Caminho for utilizado.
+  </p>
+
+
+  <!-- =============================================
+       ITEM EXIGIDO
+       ============================================= -->
+
+  <div class="field">
+    <label for="response-required-item">
+      ITEM EXIGIDO
+    </label>
+
+    <select id="response-required-item">
+      <option value="">
+        Nenhum item exigido
+      </option>
+    </select>
+
+    <small>
+      O jogador só poderá utilizar este Caminho
+      quando possuir o Item selecionado.
+    </small>
+  </div>
+
+
+  <div
+    id="response-missing-item-field"
+    class="field is-hidden"
+  >
+    <label for="response-missing-item-text">
+      RESPOSTA QUANDO O ITEM ESTIVER AUSENTE
+    </label>
+
+    <textarea
+      id="response-missing-item-text"
+      rows="3"
+      maxlength="1000"
+      placeholder="Ex.: Você precisa encontrar uma chave para abrir esta porta."
+    ></textarea>
+
+    <small>
+      Esta mensagem aparece quando o comando corresponde
+      ao Caminho, mas o jogador não possui o Item exigido.
+    </small>
+  </div>
+
+
+  <!-- =============================================
+       CONSUMIR ITEM EXIGIDO
+       ============================================= -->
+
+  <label
+    id="response-consume-required-item-option"
+    class="toggle-option is-hidden"
+  >
+    <input
+      id="response-consume-required-item"
+      type="checkbox"
+    >
+
+    <span class="toggle-option__control"></span>
+
+    <span>
+      <strong>CONSUMIR O ITEM EXIGIDO</strong>
+
+      <small>
+        Remove uma unidade do Item depois que
+        o Caminho for executado.
+      </small>
+    </span>
+  </label>
+
+
+  <!-- =============================================
+       ITEM ENTREGUE
+       ============================================= -->
+
+  <div class="field">
+    <label for="response-give-item">
+      ENTREGAR ITEM
+    </label>
+
+    <select id="response-give-item">
+      <option value="">
+        Não entregar nenhum item
+      </option>
+    </select>
+
+    <small>
+      O jogador receberá o Item selecionado
+      ao executar este Caminho.
+    </small>
+  </div>
+
+
+  <div
+    id="response-give-item-quantity-field"
+    class="field is-hidden"
+  >
+    <label for="response-give-item-quantity">
+      QUANTIDADE ENTREGUE
+    </label>
+
+    <input
+      id="response-give-item-quantity"
+      type="number"
+      min="1"
+      max="999"
+      step="1"
+      value="1"
+    >
+
+    <small>
+      Para Itens não empilháveis, a quantidade
+      permanecerá igual a 1.
+    </small>
+  </div>
+
+
+  <!-- =============================================
+       ITEM REMOVIDO
+       ============================================= -->
+
+  <div class="field">
+    <label for="response-remove-item">
+      REMOVER ITEM
+    </label>
+
+    <select id="response-remove-item">
+      <option value="">
+        Não remover nenhum item
+      </option>
+    </select>
+
+    <small>
+      Remove o Item selecionado do inventário
+      depois que o Caminho for executado.
+    </small>
+  </div>
+
+
+  <div
+    id="response-remove-item-quantity-field"
+    class="field is-hidden"
+  >
+    <label for="response-remove-item-quantity">
+      QUANTIDADE REMOVIDA
+    </label>
+
+    <input
+      id="response-remove-item-quantity"
+      type="number"
+      min="1"
+      max="999"
+      step="1"
+      value="1"
+    >
+
+    <small>
+      Define quantas unidades serão retiradas
+      do inventário do jogador.
+    </small>
+  </div>
+</fieldset>
 
       <!-- ===============================================
            PRIORIDADE E ESTADO
