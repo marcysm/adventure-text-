@@ -128,6 +128,7 @@ async function initializeAdminPanel() {
   populateRouteSelectors();
 populateResponseSelectors();
 populateRouteSceneSelector();
+populateResponseItemSelectors();
 
 applySceneFilters();
 applyResponseFilters();
@@ -758,6 +759,65 @@ function cacheElements() {
       "response-destination-preview"
     );
 
+     /* ======================================================
+     ITENS DENTRO DOS CAMINHOS
+     ====================================================== */
+
+  elements.responseRequiredItem =
+    document.getElementById(
+      "response-required-item"
+    );
+
+  elements.responseMissingItemField =
+    document.getElementById(
+      "response-missing-item-field"
+    );
+
+  elements.responseMissingItemText =
+    document.getElementById(
+      "response-missing-item-text"
+    );
+
+  elements.responseConsumeRequiredItemOption =
+    document.getElementById(
+      "response-consume-required-item-option"
+    );
+
+  elements.responseConsumeRequiredItem =
+    document.getElementById(
+      "response-consume-required-item"
+    );
+
+  elements.responseGiveItem =
+    document.getElementById(
+      "response-give-item"
+    );
+
+  elements.responseGiveItemQuantityField =
+    document.getElementById(
+      "response-give-item-quantity-field"
+    );
+
+  elements.responseGiveItemQuantity =
+    document.getElementById(
+      "response-give-item-quantity"
+    );
+
+  elements.responseRemoveItem =
+    document.getElementById(
+      "response-remove-item"
+    );
+
+  elements.responseRemoveItemQuantityField =
+    document.getElementById(
+      "response-remove-item-quantity-field"
+    );
+
+  elements.responseRemoveItemQuantity =
+    document.getElementById(
+      "response-remove-item-quantity"
+    );
+   
   elements.responsePriority =
     document.getElementById(
       "response-priority"
@@ -1495,6 +1555,30 @@ elements.navigationItems.forEach(
     updateResponseDestinationPreview
   );
 
+  /*
+    Atualiza os campos relacionados ao Item exigido.
+  */
+  elements.responseRequiredItem.addEventListener(
+    "change",
+    updateResponseItemInterface
+  );
+
+  /*
+    Atualiza quantidade e comportamento do Item entregue.
+  */
+  elements.responseGiveItem.addEventListener(
+    "change",
+    updateResponseItemInterface
+  );
+
+  /*
+    Atualiza quantidade do Item removido.
+  */
+  elements.responseRemoveItem.addEventListener(
+    "change",
+    updateResponseItemInterface
+  );
+   
   elements.responseKey.addEventListener(
     "input",
     handleResponseKeyInput
@@ -8753,13 +8837,19 @@ async function refreshItems() {
     Substitui a lista antiga pela versão
     atualizada que veio do Supabase.
   */
-  state.items =
-    data || [];
+ state.items =
+  data || [];
 
-  /*
-    Refaz estatísticas, filtros e cartões.
-  */
-  applyItemFilters();
+/*
+  Atualiza a aba de Itens.
+*/
+applyItemFilters();
+
+/*
+  Atualiza os três seletores dentro
+  do formulário de Caminhos.
+*/
+populateResponseItemSelectors();
 }
 
 async function handleItemFormSubmit(event) {
@@ -9798,6 +9888,314 @@ function appendOption(
   selectElement.appendChild(option);
 }
 
+/* ==========================================================
+   SELETORES DE ITENS DOS CAMINHOS
+   ========================================================== */
+
+function populateResponseItemSelectors() {
+  /*
+    Guarda os valores atuais.
+
+    Isso evita perder a seleção caso a lista
+    seja atualizada depois de criar ou editar um Item.
+  */
+  const currentRequiredItem =
+    elements.responseRequiredItem.value;
+
+  const currentGiveItem =
+    elements.responseGiveItem.value;
+
+  const currentRemoveItem =
+    elements.responseRemoveItem.value;
+
+  /*
+    Remove somente as opções criadas pelo JavaScript.
+
+    As opções iniciais, como "Nenhum item exigido",
+    permanecem no HTML.
+  */
+  [
+    elements.responseRequiredItem,
+    elements.responseGiveItem,
+    elements.responseRemoveItem
+  ].forEach(selectElement => {
+    selectElement
+      .querySelectorAll(
+        'option[data-dynamic-item="true"]'
+      )
+      .forEach(option => {
+        option.remove();
+      });
+  });
+
+  /*
+    Organiza os Itens primeiro pela ordem definida
+    no painel e depois pelo nome.
+  */
+  const sortedItems =
+    [...state.items].sort(
+      (firstItem, secondItem) => {
+        const orderDifference =
+          (
+            Number(
+              firstItem.display_order
+            ) || 0
+          ) -
+          (
+            Number(
+              secondItem.display_order
+            ) || 0
+          );
+
+        if (orderDifference !== 0) {
+          return orderDifference;
+        }
+
+        return String(
+          firstItem.name || ""
+        ).localeCompare(
+          String(
+            secondItem.name || ""
+          ),
+          "pt-BR"
+        );
+      }
+    );
+
+  sortedItems.forEach(item => {
+    /*
+      Um Item desativado continua aparecendo no painel,
+      mas recebe uma indicação no nome.
+
+      Isso permite identificar Caminhos antigos que
+      ainda estejam ligados a esse Item.
+    */
+    const itemLabel = [
+      item.name || item.item_key,
+      item.is_enabled
+        ? ""
+        : "— desativado",
+      item.is_secret
+        ? "— secreto"
+        : ""
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    [
+      elements.responseRequiredItem,
+      elements.responseGiveItem,
+      elements.responseRemoveItem
+    ].forEach(selectElement => {
+      const option =
+        document.createElement("option");
+
+      /*
+        Usaremos o identificador interno como valor.
+
+        Exemplo:
+        chave_enferrujada
+      */
+      option.value =
+        item.item_key;
+
+      option.textContent =
+        itemLabel;
+
+      option.dataset.dynamicItem =
+        "true";
+
+      selectElement.appendChild(
+        option
+      );
+    });
+  });
+
+  /*
+    Tenta restaurar as seleções anteriores.
+  */
+  elements.responseRequiredItem.value =
+    currentRequiredItem;
+
+  elements.responseGiveItem.value =
+    currentGiveItem;
+
+  elements.responseRemoveItem.value =
+    currentRemoveItem;
+
+  updateResponseItemInterface();
+}
+
+/* ==========================================================
+   INTERFACE DE ITENS DO CAMINHO
+   ========================================================== */
+
+function updateResponseItemInterface() {
+  const requiredItem =
+    getItemByKey(
+      elements.responseRequiredItem.value
+    );
+
+  const giveItem =
+    getItemByKey(
+      elements.responseGiveItem.value
+    );
+
+  const removeItem =
+    getItemByKey(
+      elements.responseRemoveItem.value
+    );
+
+
+  /*
+    ITEM EXIGIDO
+  */
+
+  const hasRequiredItem =
+    Boolean(requiredItem);
+
+  elements.responseMissingItemField.classList.toggle(
+    "is-hidden",
+    !hasRequiredItem
+  );
+
+  elements.responseConsumeRequiredItemOption.classList.toggle(
+    "is-hidden",
+    !hasRequiredItem
+  );
+
+  if (!hasRequiredItem) {
+    elements.responseMissingItemText.value =
+      "";
+
+    elements.responseConsumeRequiredItem.checked =
+      false;
+  }
+
+
+  /*
+    ITEM ENTREGUE
+  */
+
+  const hasGiveItem =
+    Boolean(giveItem);
+
+  elements.responseGiveItemQuantityField.classList.toggle(
+    "is-hidden",
+    !hasGiveItem
+  );
+
+  if (!hasGiveItem) {
+    elements.responseGiveItemQuantity.value =
+      "1";
+  } else if (!giveItem.is_stackable) {
+    /*
+      Itens únicos sempre são entregues
+      em uma única unidade.
+    */
+    elements.responseGiveItemQuantity.value =
+      "1";
+
+    elements.responseGiveItemQuantity.disabled =
+      true;
+  } else {
+    elements.responseGiveItemQuantity.disabled =
+      false;
+
+    const maximumQuantity =
+      Math.max(
+        1,
+        Number(
+          giveItem.maximum_quantity
+        ) || 1
+      );
+
+    elements.responseGiveItemQuantity.max =
+      String(maximumQuantity);
+
+    const currentQuantity =
+      Number(
+        elements.responseGiveItemQuantity.value
+      ) || 1;
+
+    elements.responseGiveItemQuantity.value =
+      String(
+        Math.min(
+          Math.max(
+            currentQuantity,
+            1
+          ),
+          maximumQuantity
+        )
+      );
+  }
+
+
+  /*
+    ITEM REMOVIDO
+  */
+
+  const hasRemoveItem =
+    Boolean(removeItem);
+
+  elements.responseRemoveItemQuantityField.classList.toggle(
+    "is-hidden",
+    !hasRemoveItem
+  );
+
+  if (!hasRemoveItem) {
+    elements.responseRemoveItemQuantity.value =
+      "1";
+  } else if (!removeItem.is_stackable) {
+    elements.responseRemoveItemQuantity.value =
+      "1";
+
+    elements.responseRemoveItemQuantity.disabled =
+      true;
+  } else {
+    elements.responseRemoveItemQuantity.disabled =
+      false;
+
+    const maximumQuantity =
+      Math.max(
+        1,
+        Number(
+          removeItem.maximum_quantity
+        ) || 1
+      );
+
+    elements.responseRemoveItemQuantity.max =
+      String(maximumQuantity);
+
+    const currentQuantity =
+      Number(
+        elements.responseRemoveItemQuantity.value
+      ) || 1;
+
+    elements.responseRemoveItemQuantity.value =
+      String(
+        Math.min(
+          Math.max(
+            currentQuantity,
+            1
+          ),
+          maximumQuantity
+        )
+      );
+  }
+}
+
+
+function getItemByKey(itemKey) {
+  if (!itemKey) {
+    return null;
+  }
+
+  return state.items.find(
+    item =>
+      item.item_key === itemKey
+  ) || null;
+}
 
 /* ==========================================================
    CARREGAR E ATUALIZAR CAMINHOS
@@ -10387,6 +10785,30 @@ function resetResponseForm() {
   elements.responseTargetRoute.value =
     "";
 
+     /*
+    Limpa todas as configurações de Itens.
+  */
+  elements.responseRequiredItem.value =
+    "";
+
+  elements.responseMissingItemText.value =
+    "";
+
+  elements.responseConsumeRequiredItem.checked =
+    false;
+
+  elements.responseGiveItem.value =
+    "";
+
+  elements.responseGiveItemQuantity.value =
+    "1";
+
+  elements.responseRemoveItem.value =
+    "";
+
+  elements.responseRemoveItemQuantity.value =
+    "1";
+   
   elements.responseKey.disabled =
     false;
 
@@ -10395,6 +10817,7 @@ function resetResponseForm() {
 
   updateResponseModeInterface();
   updateResponseDestinationPreview();
+   updateResponseItemInterface();
 
   clearResponseFormMessage();
 
